@@ -1,8 +1,6 @@
-/* ===== Minha Vida — Store (React context + localStorage) ===== */
+/* ===== Minha Vida — Store (React context + Supabase) ===== */
 const StoreCtx = React.createContext(null);
 const useStore = () => React.useContext(StoreCtx);
-
-const LS_KEY = 'minhavida_v1';
 
 const DEFAULT_CARDS = [
   { id:'card1', name:'Cartão principal', color:'var(--c-vdec)', limit:8000 },
@@ -173,22 +171,103 @@ function freshFromSeed(){
   };
 }
 
-function loadState(){
-  let s=null;
-  try{ const raw = localStorage.getItem(LS_KEY); if(raw) s = JSON.parse(raw); }catch(e){}
-  if(!s) s = freshFromSeed();
-  return migrate(s);
-}
+const EMAIL_TO_PROFILE = {
+  'contatoliberoalves@gmail.com': 'libero',
+  'anacbrandao222005@gmail.com': 'ana',
+};
 
 function StoreProvider({children}){
-  const [state, setState] = React.useState(loadState);
+  const [session, setSession] = React.useState(undefined); // undefined=carregando, null=deslogado
+  const [authError, setAuthError] = React.useState('');
+  const [state, setState] = React.useState(null); // null = carregando dados
+  const [integrationStatus, setIntegrationStatus] = React.useState({});
+  const lastSyncedRef = React.useRef(null); // JSON do que já sabemos estar salvo no servidor
+
+  // sessão de autenticação
   React.useEffect(()=>{
-    try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){}
-  }, [state]);
+    window.SB.auth.getSession().then(({data})=> setSession(data.session||null));
+    const { data:sub } = window.SB.auth.onAuthStateChange((_evt, sess)=> setSession(sess||null));
+    return ()=> sub.subscription.unsubscribe();
+  },[]);
+
+  // carrega o estado compartilhado + assina tempo real, assim que autenticado
+  React.useEffect(()=>{
+    if(!session){ setState(null); lastSyncedRef.current=null; return; }
+    let alive=true;
+    window.SB.from('mv_state').select('data').eq('id','household').single().then(({data,error})=>{
+      if(!alive) return;
+      const base = (data && data.data && Object.keys(data.data).length) ? data.data : freshFromSeed();
+      lastSyncedRef.current = JSON.stringify(base);
+      const loaded = migrate({...base});
+      loaded.activeProfile = EMAIL_TO_PROFILE[session.user.email] || null;
+      setState(loaded);
+    });
+    const channel = window.SB.channel('mv_state_sync')
+      .on('postgres_changes', {event:'UPDATE', schema:'public', table:'mv_state', filter:'id=eq.household'}, (payload)=>{
+        if(!alive) return;
+        const incoming = payload.new.data || {};
+        lastSyncedRef.current = JSON.stringify(incoming);
+        setState(prev=>{
+          const merged = migrate({...incoming});
+          merged.activeProfile = prev ? prev.activeProfile : (EMAIL_TO_PROFILE[session.user.email]||null);
+          return merged;
+        });
+      })
+      .subscribe();
+    return ()=>{ alive=false; window.SB.removeChannel(channel); };
+  },[session && session.user && session.user.id]);
+
+  // status das integrações (Google/Slack/Trello), atualizado em tempo real
+  React.useEffect(()=>{
+    if(!session) return;
+    let alive=true;
+    window.SB.from('mv_integration_status').select('provider,connected').then(({data})=>{
+      if(!alive || !data) return;
+      const m={}; data.forEach(r=>{ m[r.provider]=r.connected; });
+      setIntegrationStatus(m);
+    });
+    const ch = window.SB.channel('mv_integration_status_sync')
+      .on('postgres_changes', {event:'*', schema:'public', table:'mv_integration_status'}, (payload)=>{
+        const row = payload.new || payload.old;
+        if(!row) return;
+        setIntegrationStatus(m=>({...m,[row.provider]: payload.eventType==='DELETE' ? false : row.connected}));
+      })
+      .subscribe();
+    return ()=>{ alive=false; window.SB.removeChannel(ch); };
+  },[session && session.user && session.user.id]);
+
+  // persiste alterações locais no Supabase (debounced), ignorando o que acabamos de carregar/receber
+  React.useEffect(()=>{
+    if(!session || !state) return;
+    const { activeProfile, ...toSave } = state;
+    const json = JSON.stringify(toSave);
+    if(json===lastSyncedRef.current) return;
+    const t = setTimeout(()=>{
+      window.SB.from('mv_state').update({ data: toSave, updated_at: new Date().toISOString(), updated_by: session.user.email }).eq('id','household')
+        .then(({error})=>{ if(!error) lastSyncedRef.current = json; });
+    }, 500);
+    return ()=> clearTimeout(t);
+  },[state, session]);
+
+  const signIn = async (email,password)=>{
+    setAuthError('');
+    const { error } = await window.SB.auth.signInWithPassword({ email, password });
+    if(error) setAuthError(error.message);
+  };
+  const signUp = async (email,password)=>{
+    setAuthError('');
+    const { error } = await window.SB.auth.signUp({ email, password });
+    if(error) setAuthError(error.message);
+  };
+  const signOut = ()=> window.SB.auth.signOut();
+
+  const notifySlack = (text)=>{
+    window.mvCallFunction('slack-notify', {text}).catch(()=>{});
+  };
 
   const api = React.useMemo(()=>({
     // commitments
-    addCommitment:(c)=>setState(s=>({...s, commitments:[...s.commitments, {...c, id:'c'+Date.now()}]})),
+    addCommitment:(c)=>{ notifySlack(`📅 Novo compromisso: *${c.title}* em ${c.date}${c.time?' às '+c.time:''}`); setState(s=>({...s, commitments:[...s.commitments, {...c, id:'c'+Date.now()}]})); },
     updateCommitment:(id,patch)=>setState(s=>({...s, commitments:s.commitments.map(c=>c.id===id?{...c,...patch}:c)})),
     toggleDone:(id)=>setState(s=>({...s, commitments:s.commitments.map(c=>c.id===id?{...c,done:!c.done}:c)})),
     removeCommitment:(id)=>setState(s=>({...s, commitments:s.commitments.filter(c=>c.id!==id)})),
@@ -207,7 +286,6 @@ function StoreProvider({children}){
     // settings
     setTithe:(v)=>setState(s=>({...s, settings:{...s.settings, tithe:v}})),
     toggleConnect:(k)=>setState(s=>({...s, settings:{...s.settings, connected:{...s.settings.connected, [k]:!s.settings.connected[k]}}})),
-    setProfile:(p)=>setState(s=>({...s, activeProfile:p})),
     // cartões
     addCard:(c)=>setState(s=>({...s, cards:[...s.cards,{...c,id:'card'+Date.now()}]})),
     updateCard:(id,patch)=>setState(s=>({...s, cards:s.cards.map(c=>c.id===id?{...c,...patch}:c)})),
@@ -237,7 +315,11 @@ function StoreProvider({children}){
     addBill:(b)=>setState(s=>({...s, bills:[...s.bills,{...b,id:'b'+Date.now()}]})),
     updateBill:(id,patch)=>setState(s=>({...s, bills:s.bills.map(b=>b.id===id?{...b,...patch}:b)})),
     removeBill:(id)=>setState(s=>({...s, bills:s.bills.filter(b=>b.id!==id)})),
-    toggleBillPaid:(id)=>setState(s=>({...s, bills:s.bills.map(b=>b.id===id?{...b,paid:!b.paid,paidDate:!b.paid?window.U.TODAY:''}:b)})),
+    toggleBillPaid:(id)=>setState(s=>{
+      const bill=s.bills.find(b=>b.id===id);
+      if(bill && !bill.paid) notifySlack(`💸 Conta paga: *${bill.desc}* (${window.U.brl(bill.amount)})`);
+      return {...s, bills:s.bills.map(b=>b.id===id?{...b,paid:!b.paid,paidDate:!b.paid?window.U.TODAY:''}:b)};
+    }),
     // metas
     addGoal:(g)=>setState(s=>({...s, goals:[...s.goals,{...g,id:'g'+Date.now()}]})),
     updateGoal:(id,patch)=>setState(s=>({...s, goals:s.goals.map(g=>g.id===id?{...g,...patch}:g)})),
@@ -276,10 +358,12 @@ function StoreProvider({children}){
       return {...s, playbookExtra:s.playbookExtra.filter(p=>p.id!==id), playbookChecks:checks};
     }),
     resetPlaybook:(launchKey)=>setState(s=>({...s, playbookChecks:{...s.playbookChecks,[launchKey]:{}}})),
-    reset:()=>{ localStorage.removeItem(LS_KEY); setState(loadState()); },
-  }), []);
+    reset:()=>{ const fresh=migrate(freshFromSeed()); fresh.activeProfile = state ? state.activeProfile : null; setState(fresh); },
+  }), [state, notifySlack]);
 
-  const value = React.useMemo(()=>({state, ...api}), [state, api]);
+  const value = React.useMemo(()=>({
+    state, session, authError, integrationStatus, signIn, signUp, signOut, notifySlack, ...api,
+  }), [state, session, authError, integrationStatus, api]);
   return React.createElement(StoreCtx.Provider, {value}, children);
 }
 

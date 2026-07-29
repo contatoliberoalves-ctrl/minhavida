@@ -1,10 +1,10 @@
 /* ===== Minha Vida — Busca inteligente ===== */
 function BuscaView(){
-  const { state } = useStore();
+  const { state, integrationStatus } = useStore();
   const U=window.U;
   const [q,setQ]=React.useState('');
   const [scope,setScope]=React.useState({plataforma:true,drive:false,gmail:false,docs:false});
-  const conn=state.settings.connected;
+  const conn={drive:!!integrationStatus.google_drive, gmail:!!integrationStatus.google_gmail, docs:!!integrationStatus.google_docs};
 
   const toggleScope=(k)=>setScope(s=>({...s,[k]:!s[k]}));
 

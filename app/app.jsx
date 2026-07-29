@@ -53,44 +53,101 @@ const PAGE_META = {
   integracoes:{title:'Integrações', sub:'Conecte o Google e suas plataformas'},
 };
 
-function LoginScreen({onPick}){
+function LoginScreen(){
+  const { signIn, signUp, authError } = useStore();
+  const [mode,setMode]=React.useState('signin'); // signin | signup
+  const [email,setEmail]=React.useState('');
+  const [password,setPassword]=React.useState('');
+  const [busy,setBusy]=React.useState(false);
+  const [signedUpMsg,setSignedUpMsg]=React.useState('');
+
+  const submit=async(e)=>{
+    e.preventDefault();
+    setBusy(true); setSignedUpMsg('');
+    if(mode==='signin'){ await signIn(email,password); }
+    else {
+      await signUp(email,password);
+      setSignedUpMsg('Conta criada! Se pedirmos confirmação por e-mail, confirme e depois entre por aqui.');
+      setMode('signin');
+    }
+    setBusy(false);
+  };
+
   return (
     <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)',padding:20}}>
-      <div style={{textAlign:'center',maxWidth:460,width:'100%'}}>
+      <form onSubmit={submit} className="card" style={{textAlign:'center',maxWidth:360,width:'100%',padding:'32px 28px'}}>
         <div className="brand-mark" style={{width:52,height:52,fontSize:22,margin:'0 auto 18px'}}>MV</div>
         <h1 style={{fontSize:22,fontWeight:700,letterSpacing:'-.02em',marginBottom:6}}>Minha Vida</h1>
-        <p style={{fontSize:13.5,color:'var(--muted)',marginBottom:28}}>Quem está entrando?</p>
-        <div style={{display:'flex',gap:14,justifyContent:'center',flexWrap:'wrap'}}>
-          {Object.values(PROFILES).map(p=>(
-            <button key={p.id} onClick={()=>onPick(p.id)} className="card" style={{padding:'24px 26px',width:190,cursor:'pointer',textAlign:'center'}}
-              onMouseEnter={e=>e.currentTarget.style.boxShadow='var(--sh-md)'} onMouseLeave={e=>e.currentTarget.style.boxShadow='var(--sh-sm)'}>
-              <span className="avatar" style={{width:56,height:56,fontSize:19,margin:'0 auto 12px',background:'var(--olive-100)',color:'var(--olive-800)'}}>{p.initials}</span>
-              <div style={{fontWeight:650,fontSize:14.5}}>{p.name}</div>
-              <div style={{fontSize:11.5,color:'var(--muted)',marginTop:3}}>{p.role}</div>
-            </button>
-          ))}
+        <p style={{fontSize:13.5,color:'var(--muted)',marginBottom:22}}>{mode==='signin'?'Entre com sua conta':'Crie sua conta'}</p>
+
+        <div style={{display:'flex',flexDirection:'column',gap:10,textAlign:'left'}}>
+          <label style={{fontSize:11.5,fontWeight:600,color:'var(--faint)'}}>E-mail
+            <input className="input" type="email" required autoFocus value={email} onChange={e=>setEmail(e.target.value)} style={{marginTop:4}}/>
+          </label>
+          <label style={{fontSize:11.5,fontWeight:600,color:'var(--faint)'}}>Senha
+            <input className="input" type="password" required minLength={6} value={password} onChange={e=>setPassword(e.target.value)} style={{marginTop:4}}/>
+          </label>
         </div>
-      </div>
+
+        {authError && <div className="notice" style={{marginTop:14,textAlign:'left'}}><Icon name="alert"/><div>{authError}</div></div>}
+        {signedUpMsg && <div className="notice" style={{marginTop:14,textAlign:'left'}}><Icon name="alert"/><div>{signedUpMsg}</div></div>}
+
+        <button className="btn btn-primary" type="submit" disabled={busy} style={{width:'100%',marginTop:18,justifyContent:'center'}}>
+          {busy? 'Aguarde…' : (mode==='signin' ? 'Entrar' : 'Criar conta')}
+        </button>
+        <button type="button" onClick={()=>{setMode(mode==='signin'?'signup':'signin'); setSignedUpMsg('');}} className="btn btn-ghost" style={{width:'100%',marginTop:8,justifyContent:'center'}}>
+          {mode==='signin' ? 'Primeira vez? Criar conta' : 'Já tenho conta — entrar'}
+        </button>
+      </form>
     </div>
   );
 }
 
+function LoadingScreen(){
+  return (
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)'}}>
+      <div className="brand-mark" style={{width:52,height:52,fontSize:22}}>MV</div>
+    </div>
+  );
+}
+
+// avisa no Slack (uma vez por dia) sobre contas a pagar vencendo nos próximos 2 dias
+function useDueBillsNotice(state, notifySlack){
+  React.useEffect(()=>{
+    if(!state) return;
+    const today = window.U.TODAY;
+    const key = 'mv_due_notified_'+today;
+    if(localStorage.getItem(key)) return;
+    const soon = (state.bills||[]).filter(b=> b.type==='pagar' && !b.paid && window.U.daysFromToday(b.due)>=0 && window.U.daysFromToday(b.due)<=2);
+    if(soon.length){
+      const lines = soon.map(b=>`• ${b.desc} — ${window.U.brl(b.amount)} (vence ${window.U.fmtDate(b.due,'')})`).join('\n');
+      notifySlack(`⏰ Contas vencendo nos próximos dias:\n${lines}`);
+    }
+    localStorage.setItem(key,'1');
+  },[!!state]);
+}
+
 function App(){
-  const { state, setProfile } = useStore();
-  const profile = PROFILES[state.activeProfile] || null;
+  const { session, state, signOut, notifySlack } = useStore();
+  useDueBillsNotice(state, notifySlack);
+
+  const profile = state ? (PROFILES[state.activeProfile] || null) : null;
   const nav = navFor(profile);
   const allowedKeys = new Set(nav.filter(i=>!i.section).map(i=>i.key));
-  const [page,setPage]=React.useState(()=> (location.hash||'').replace('#','') || 'inicio');
+  const [page,setPage]=React.useState(()=> (location.hash||'').replace('#','').split('?')[0] || 'inicio');
   const go=(p)=>{ setPage(p); location.hash=p; const m=document.querySelector('.content'); if(m) m.scrollTop=0; window.scrollTo(0,0); };
   React.useEffect(()=>{
-    const h=()=>{ const p=(location.hash||'').replace('#',''); if(p) setPage(p); };
+    const h=()=>{ const p=(location.hash||'').replace('#','').split('?')[0]; if(p) setPage(p); };
     window.addEventListener('hashchange',h); return ()=>window.removeEventListener('hashchange',h);
   },[]);
   React.useEffect(()=>{
     if(profile && profile.access!=='all' && !allowedKeys.has(page)){ go('agenda'); }
   },[profile, page]);
 
-  if(!profile) return <LoginScreen onPick={(id)=>{ setProfile(id); go(id==='ana'?'agenda':'inicio'); }}/>;
+  if(session===undefined) return <LoadingScreen/>;
+  if(!session) return <LoginScreen/>;
+  if(!state) return <LoadingScreen/>;
+  if(!profile) return <LoadingScreen/>;
 
   const unread=state.emails.filter(e=>e.unread).length;
   const meta=PAGE_META[page]||PAGE_META.inicio;
@@ -114,9 +171,9 @@ function App(){
           )}
         </nav>
         <div className="sidebar-foot">
-          <button className="user-chip" style={{width:'100%',border:'none',background:'none',cursor:'pointer',textAlign:'left'}} onClick={()=>setProfile(null)} title="Trocar de perfil">
+          <button className="user-chip" style={{width:'100%',border:'none',background:'none',cursor:'pointer',textAlign:'left'}} onClick={signOut} title="Sair">
             <span className="avatar">{profile.initials}</span>
-            <div style={{minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{profile.name}</div><div style={{fontSize:11,color:'var(--faint)'}}>{profile.role} · trocar</div></div>
+            <div style={{minWidth:0}}><div style={{fontSize:13,fontWeight:600}}>{profile.name}</div><div style={{fontSize:11,color:'var(--faint)'}}>{profile.role} · sair</div></div>
           </button>
         </div>
       </aside>

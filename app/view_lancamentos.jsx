@@ -43,13 +43,14 @@ function LaunchModal({initial,onClose}){
 }
 
 function LancamentosView(){
-  const { state, toggleConnect } = useStore();
+  const { state, integrationStatus } = useStore();
   const U=window.U;
   const [open,setOpen]=React.useState(null);
   const [modal,setModal]=React.useState(false);
   const [filter,setFilter]=React.useState('todos');
   const [view,setView]=React.useState('cards'); // cards | board
-  const trello = !!state.settings.connected.trello;
+  const trello = !!integrationStatus.trello;
+  const goToIntegracoes = ()=>{ location.hash='integracoes'; };
 
   if(open){ const l=state.launches.find(x=>x.id===open); if(l) return <LaunchDetail launch={l} onBack={()=>setOpen(null)}/>; }
 
@@ -80,13 +81,13 @@ function LancamentosView(){
           <button className={filter==='todos'?'on':''} onClick={()=>setFilter('todos')}>Todos</button>
           {Object.keys(LAUNCH_PHASES).map(k=><button key={k} className={filter===k?'on':''} onClick={()=>setFilter(k)}>{LAUNCH_PHASES[k].label}</button>)}
         </div>}
-        <button className="btn btn-ghost" onClick={()=>toggleConnect('trello')} style={Object.assign({marginLeft:'auto'}, trello?{borderColor:'color-mix(in srgb,#0079bf 40%,#fff)',color:'#0079bf'}:{})}>
+        <button className="btn btn-ghost" onClick={goToIntegracoes} style={Object.assign({marginLeft:'auto'}, trello?{borderColor:'color-mix(in srgb,#0079bf 40%,#fff)',color:'#0079bf'}:{})}>
           <span style={{width:15,height:15,borderRadius:3,background:trello?'#0079bf':'var(--muted)',display:'inline-grid',placeItems:'center'}}><Icon name="board" size={11} style={{color:'#fff'}}/></span>
           {trello?'Trello conectado':'Conectar Trello'}</button>
         <button className="btn btn-primary" onClick={()=>setModal(true)}><Icon name="plus" size={16}/>Novo lançamento</button>
       </div>
 
-      {view==='board' ? <TrelloBoard launches={state.launches} trello={trello} onOpen={setOpen} onConnect={()=>toggleConnect('trello')}/> :
+      {view==='board' ? <TrelloBoard launches={state.launches} trello={trello} onOpen={setOpen} onConnect={goToIntegracoes}/> :
       view==='playbook' ? <PlaybookView launches={state.launches}/> :
       list.length===0 ? <div className="empty"><Icon name="play"/><div>Nenhum lançamento neste filtro.</div></div> :
       <div className="grid" style={{gridTemplateColumns:'repeat(auto-fill,minmax(330px,1fr))'}}>

@@ -1,7 +1,7 @@
 /* ===== Minha Vida — Caixa de Entrada (Gmail) ===== */
 function EmailView(){
-  const { state, markRead, toggleStar } = useStore();
-  const connected = state.settings.connected.gmail;
+  const { state, markRead, toggleStar, integrationStatus } = useStore();
+  const connected = !!integrationStatus.google_gmail;
   const [sel,setSel]=React.useState(null);
   const [filter,setFilter]=React.useState('todos');
   const [fwd,setFwd]=React.useState(null);
