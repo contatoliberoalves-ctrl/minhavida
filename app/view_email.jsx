@@ -17,16 +17,18 @@ function parseGmailMessage(m){
     preview: m.snippet || '',
     unread: (m.labelIds||[]).includes('UNREAD'),
     star: (m.labelIds||[]).includes('STARRED'),
-    label: '',
   };
 }
 
 function EmailView(){
-  const { state, markRead, toggleStar, integrationStatus } = useStore();
+  const { state, markRead, toggleStar, setEmailMeta, integrationStatus } = useStore();
   const connected = !!integrationStatus.google_gmail;
   const [sel,setSel]=React.useState(null);
   const [filter,setFilter]=React.useState('todos');
+  const [prio,setPrio]=React.useState('todas');
   const [fwd,setFwd]=React.useState(null);
+  const [reply,setReply]=React.useState(null);
+  const [commitFrom,setCommitFrom]=React.useState(null);
   const [liveEmails,setLiveEmails]=React.useState(null);
   const [liveError,setLiveError]=React.useState('');
   const [loadingLive,setLoadingLive]=React.useState(false);
@@ -44,12 +46,17 @@ function EmailView(){
   },[connected]);
 
   const isLive = (id)=> typeof id==='string' && id.startsWith('gm_');
-  const withOverride = (e)=> overrides[e.id] ? {...e, ...overrides[e.id]} : e;
+  const decorate = (e)=>{
+    const meta = state.emailMeta[e.id] || {};
+    const ov = overrides[e.id] || {};
+    return {...e, ...meta, ...ov};
+  };
 
-  let emails = (connected ? (liveEmails||[]) : state.emails).map(withOverride);
+  let emails = (connected ? (liveEmails||[]) : state.emails).map(decorate);
   if(filter==='nao')emails=emails.filter(e=>e.unread);
   if(filter==='fav')emails=emails.filter(e=>e.star);
-  const unreadCount = (connected ? (liveEmails||[]) : state.emails).map(withOverride).filter(e=>e.unread).length;
+  if(prio!=='todas')emails=emails.filter(e=>e.priority===prio);
+  const unreadCount = (connected ? (liveEmails||[]) : state.emails).map(decorate).filter(e=>e.unread).length;
 
   const handleOpen=(e)=>{
     setSel(e);
@@ -60,7 +67,7 @@ function EmailView(){
   };
   const handleToggleStar=(id)=>{
     if(isLive(id)){
-      const cur = withOverride((liveEmails||[]).find(e=>e.id===id) || {});
+      const cur = decorate((liveEmails||[]).find(e=>e.id===id) || {id});
       setOverrides(o=>({...o,[id]:{...o[id], star: !cur.star}}));
     } else toggleStar(id);
   };
@@ -70,10 +77,21 @@ function EmailView(){
     <div className="view-enter">
       {!connected && <div className="notice" style={{marginBottom:16}}>
         <Icon name="alert"/>
-        <div><b>Pré-visualização com e-mails de exemplo.</b> Conecte sua conta do Gmail na aba <b>Integrações</b> para listar seus e-mails reais e encaminhar com o seu aval.</div>
+        <div><b>Pré-visualização com e-mails de exemplo.</b> Conecte sua conta do Gmail na aba <b>Integrações</b> para listar seus e-mails reais e responder/encaminhar com o seu aval.</div>
       </div>}
       {connected && loadingLive && <div className="notice" style={{marginBottom:16}}><Icon name="alert"/><div>Carregando e-mails do Gmail…</div></div>}
       {connected && liveError && <div className="notice" style={{marginBottom:16}}><Icon name="alert"/><div>Não consegui carregar o Gmail: {liveError}</div></div>}
+
+      <div style={{display:'flex',gap:7,flexWrap:'wrap',marginBottom:14}}>
+        {[['todas','Todas'],['urgente','Urgente'],['quase','Quase urgente'],['espera','Dá pra esperar']].map(([k,l])=>{
+          const col = k==='todas'?'var(--olive)':window.PRIORITIES[k].color;
+          const on = prio===k;
+          return <button key={k} className="chip" onClick={()=>setPrio(k)} style={{cursor:'pointer',
+            borderColor:on?col:'var(--border)',background:on?`color-mix(in srgb,${col} 12%,#fff)`:'#fff',
+            color:on?col:'var(--ink-2)',fontWeight:on?600:500,padding:'5px 11px',fontSize:11.5}}>
+            {k!=='todas' && <span className="dot" style={{background:col}}></span>}{l}</button>;
+        })}
+      </div>
 
       <div className="grid" style={{gridTemplateColumns:'minmax(280px,360px) 1fr',gap:16,alignItems:'start'}}>
         <Card pad={false}>
@@ -102,7 +120,10 @@ function EmailView(){
                   </div>
                   <div style={{fontSize:12.5,fontWeight:e.unread?600:500,color:'var(--ink-2)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:1}}>{e.subject}</div>
                   <div style={{fontSize:11.5,color:'var(--faint)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginTop:1}}>{e.preview}</div>
-                  {e.label && <span className="chip" style={{fontSize:9.5,padding:'1px 7px',marginTop:6,color:labelColor(e.label)}}><span className="dot" style={{width:5,height:5,background:labelColor(e.label)}}></span>{window.U.PROJ_BY_KEY[e.label]?.label}</span>}
+                  <div style={{display:'flex',gap:6,marginTop:6,flexWrap:'wrap'}}>
+                    {e.priority && <PriorityBadge priority={e.priority} sm/>}
+                    {e.label && <span className="chip" style={{fontSize:9.5,padding:'1px 7px',color:labelColor(e.label)}}><span className="dot" style={{width:5,height:5,background:labelColor(e.label)}}></span>{window.U.PROJ_BY_KEY[e.label]?.label}</span>}
+                  </div>
                 </div>
                 {e.unread && <span style={{width:8,height:8,borderRadius:50,background:'var(--olive)',marginTop:5,flex:'0 0 8px'}}></span>}
               </div>
@@ -121,12 +142,26 @@ function EmailView(){
                 <button className="btn btn-icon btn-ghost" onClick={()=>handleToggleStar(sel.id)} title="Favoritar"><Icon name="star" size={16} style={{fill:sel.star?'var(--warn)':'none',color:sel.star?'var(--warn)':'var(--muted)'}}/></button>
               </div>
             </div>
+
+            <div style={{padding:'12px 22px',borderBottom:'1px solid var(--border-2)',display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+              <span style={{fontSize:11,color:'var(--faint)',fontWeight:600}}>Organizar:</span>
+              <select className="input" style={{width:'auto',fontSize:11.5,padding:'5px 9px'}} value={sel.label||''} onChange={e=>setEmailMeta(sel.id,{label:e.target.value||null})}>
+                <option value="">Sem área</option>
+                {window.SEED.PROJECTS.map(p=><option key={p.key} value={p.key}>{p.label}</option>)}
+              </select>
+              <select className="input" style={{width:'auto',fontSize:11.5,padding:'5px 9px'}} value={sel.priority||''} onChange={e=>setEmailMeta(sel.id,{priority:e.target.value||null})}>
+                <option value="">Sem prioridade</option>
+                {Object.values(window.PRIORITIES).map(p=><option key={p.key} value={p.key}>{p.label}</option>)}
+              </select>
+              <button className="btn btn-sm btn-ghost" style={{marginLeft:'auto'}} onClick={()=>setCommitFrom(sel)}><Icon name="calendar" size={13}/>Criar compromisso</button>
+            </div>
+
             <div style={{padding:'22px',fontSize:13.5,color:'var(--ink-2)',lineHeight:1.65}}>
               <p style={{marginBottom:12}}>{sel.preview}</p>
               {!connected && <p style={{marginBottom:12,color:'var(--faint)',fontStyle:'italic'}}>[ conteúdo completo do e-mail aparece aqui quando sua conta do Gmail estiver conectada ]</p>}
             </div>
             <div style={{padding:'16px 22px',borderTop:'1px solid var(--border-2)',display:'flex',gap:10,flexWrap:'wrap'}}>
-              <button className="btn btn-primary"><Icon name="send" size={15}/>Responder</button>
+              <button className="btn btn-primary" onClick={()=>setReply(sel)}><Icon name="send" size={15}/>Responder</button>
               <button className="btn btn-ghost" onClick={()=>setFwd(sel)}><Icon name="external" size={15}/>Encaminhar com meu aval</button>
             </div>
           </div>}
@@ -134,7 +169,59 @@ function EmailView(){
       </div>
 
       {fwd && <ForwardModal email={fwd} connected={connected} onClose={()=>setFwd(null)}/>}
+      {reply && <ReplyModal email={reply} connected={connected} onClose={()=>setReply(null)}/>}
+      {commitFrom && <CommitmentModal
+        initial={{title: commitFrom.subject, desc: 'De '+commitFrom.from+': '+(commitFrom.preview||''), date: window.U.TODAY, project: commitFrom.label||'mentorias'}}
+        onClose={()=>setCommitFrom(null)}/>}
     </div>
+  );
+}
+
+function ReplyModal({email,connected,onClose}){
+  const [text,setText]=React.useState('');
+  const [sent,setSent]=React.useState(false);
+  const [sending,setSending]=React.useState(false);
+  const [error,setError]=React.useState('');
+  const to = email.email || '';
+
+  const send = async ()=>{
+    if(!connected){ setSent(true); return; }
+    setSending(true); setError('');
+    try{
+      await window.mvCallFunction('google-api', {
+        api:'gmail_send', to,
+        subject: /^re:/i.test(email.subject) ? email.subject : 'Re: '+email.subject,
+        text,
+      });
+      setSent(true);
+    }catch(e){ setError(e.message||'Falha ao enviar.'); }
+    finally{ setSending(false); }
+  };
+
+  return (
+    <Modal title="Responder e-mail" icon="send" onClose={onClose}
+      footer={sent?<button className="btn btn-primary" onClick={onClose}>Fechar</button>:<>
+        <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+        <button className="btn btn-primary" disabled={!text.trim()||sending||!to} onClick={send}>
+          {sending?'Enviando…':<><Icon name="send" size={15}/>Enviar resposta</>}</button>
+      </>}>
+      {sent ? <div style={{textAlign:'center',padding:'10px 0'}}>
+        <span style={{width:54,height:54,borderRadius:50,background:'var(--olive-50)',color:'var(--olive)',display:'inline-grid',placeItems:'center'}}><Icon name="check" size={28} strokeWidth={2.2}/></span>
+        <div style={{fontWeight:600,marginTop:12,fontSize:15}}>{connected?'Resposta enviada!':'Resposta simulada'}</div>
+        <div style={{fontSize:12.5,color:'var(--muted)',marginTop:6,maxWidth:360,marginInline:'auto'}}>
+          {connected ? <>Enviada para <b>{to}</b> pelo Gmail.</> : <>Quando o Gmail estiver conectado, isso envia de verdade para <b>{to||'o remetente'}</b>.</>}
+        </div>
+      </div> : <div className="grid" style={{gap:14}}>
+        <div style={{background:'var(--surface-2)',border:'1px solid var(--border-2)',borderRadius:11,padding:'11px 13px'}}>
+          <div style={{fontSize:11.5,color:'var(--faint)'}}>Respondendo para</div>
+          <div style={{fontWeight:600,fontSize:13.5}}>{email.from} {to && <span style={{fontWeight:400,color:'var(--faint)'}}>({to})</span>}</div>
+          <div style={{fontSize:11.5,color:'var(--muted)'}}>{email.subject}</div>
+        </div>
+        {!to && <div className="notice"><Icon name="alert"/><div>Não encontrei o e-mail do remetente para responder.</div></div>}
+        <div className="field"><label>Sua resposta</label><textarea className="input" autoFocus rows={6} value={text} onChange={e=>setText(e.target.value)} placeholder="Escreva sua resposta..."/></div>
+        {error && <div className="notice"><Icon name="alert"/><div>{error}</div></div>}
+      </div>}
+    </Modal>
   );
 }
 

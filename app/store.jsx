@@ -68,6 +68,7 @@ function migrate(s){
   if(!s.readings) s.readings = DEFAULT_READINGS.map(x=>({...x}));
   if(!s.playbookChecks) s.playbookChecks = {};
   if(!s.playbookExtra) s.playbookExtra = [];
+  if(!s.emailMeta) s.emailMeta = {};
   // migra checks booleanos antigos -> objetos ricos {done,date,notes,links,images}
   if(!s._playbookRich){
     const rich={};
@@ -283,6 +284,7 @@ function StoreProvider({children}){
     // emails
     markRead:(id)=>setState(s=>({...s, emails:s.emails.map(e=>e.id===id?{...e,unread:false}:e)})),
     toggleStar:(id)=>setState(s=>({...s, emails:s.emails.map(e=>e.id===id?{...e,star:!e.star}:e)})),
+    setEmailMeta:(id,patch)=>setState(s=>({...s, emailMeta:{...s.emailMeta, [id]:{...s.emailMeta[id], ...patch}}})),
     // settings
     setTithe:(v)=>setState(s=>({...s, settings:{...s.settings, tithe:v}})),
     toggleConnect:(k)=>setState(s=>({...s, settings:{...s.settings, connected:{...s.settings.connected, [k]:!s.settings.connected[k]}}})),
