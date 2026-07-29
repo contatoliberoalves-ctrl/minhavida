@@ -94,6 +94,53 @@ function MonthCalendar({month, year, items, onDay, onEdit}){
   );
 }
 
+function GoogleAgendaCard(){
+  const { integrationStatus } = useStore();
+  const connected = !!integrationStatus.google_calendar;
+  const [events,setEvents]=React.useState(null);
+  const [error,setError]=React.useState('');
+
+  React.useEffect(()=>{
+    if(!connected){ setEvents(null); return; }
+    let alive=true;
+    window.mvCallFunction('google-api', {api:'calendar_list'})
+      .then(r=>{ if(alive) setEvents(r.items||[]); })
+      .catch(e=>{ if(alive) setError(e.message); });
+    return ()=>{ alive=false; };
+  },[connected]);
+
+  if(!connected) return null;
+  return (
+    <Card style={{marginBottom:18}}>
+      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+        <Icon name="calendar" size={16} style={{color:'var(--c-vdec)'}}/>
+        <b style={{fontSize:13.5}}>Agenda do Google</b>
+        <span className="chip" style={{fontSize:10,color:'var(--ok)',borderColor:'color-mix(in srgb,var(--ok) 30%,#fff)'}}><span className="dot" style={{background:'var(--ok)'}}></span>Conectado</span>
+      </div>
+      {error && <div className="notice"><Icon name="alert"/><div>Não consegui carregar a agenda do Google: {error}</div></div>}
+      {!error && events===null && <div style={{fontSize:12.5,color:'var(--muted)'}}>Carregando…</div>}
+      {events && events.length===0 && <div style={{fontSize:12.5,color:'var(--muted)'}}>Nenhum evento futuro na sua agenda do Google.</div>}
+      {events && events.length>0 && <div style={{display:'flex',flexDirection:'column',gap:8}}>
+        {events.slice(0,6).map(ev=>{
+          const start = ev.start && (ev.start.dateTime || ev.start.date);
+          const when = start ? (ev.start.dateTime ? new Date(start).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : start) : '';
+          const meetLink = ev.hangoutLink || (ev.conferenceData && ev.conferenceData.entryPoints && (ev.conferenceData.entryPoints.find(p=>p.entryPointType==='video')||{}).uri);
+          return (
+            <div key={ev.id} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 4px',borderBottom:'1px solid var(--border-2)'}}>
+              <span style={{width:30,height:30,borderRadius:9,background:'var(--olive-50)',color:'var(--c-vdec)',display:'grid',placeItems:'center',flex:'0 0 30px'}}><Icon name="calendar" size={15}/></span>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ev.summary||'(sem título)'}</div>
+                <div style={{fontSize:11.5,color:'var(--faint)'}}>{when}</div>
+              </div>
+              {meetLink && <a href={meetLink} target="_blank" rel="noopener" className="chip" style={{fontSize:10.5,color:'var(--c-vdec)',borderColor:'color-mix(in srgb,var(--c-vdec) 30%,#fff)',textDecoration:'none'}}><Icon name="video" size={12}/>Meet</a>}
+            </div>
+          );
+        })}
+      </div>}
+    </Card>
+  );
+}
+
 function AgendaView(){
   const { state } = useStore();
   const U=window.U;
@@ -123,6 +170,7 @@ function AgendaView(){
 
   return (
     <div className="view-enter">
+      <GoogleAgendaCard/>
       {/* toolbar */}
       <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:18,flexWrap:'wrap'}}>
         <div className="seg">

@@ -1,4 +1,21 @@
 /* ===== Minha Vida — Busca inteligente ===== */
+function useExternalSearch(active, api, ql){
+  const [results,setResults]=React.useState([]);
+  const [loading,setLoading]=React.useState(false);
+  const [error,setError]=React.useState('');
+  React.useEffect(()=>{
+    if(!active || !ql){ setResults([]); return; }
+    let alive=true;
+    setLoading(true); setError('');
+    window.mvCallFunction('google-api', {api, q: ql})
+      .then(r=>{ if(alive) setResults(r); })
+      .catch(e=>{ if(alive) setError(e.message); })
+      .finally(()=>{ if(alive) setLoading(false); });
+    return ()=>{ alive=false; };
+  },[active, api, ql]);
+  return {results, loading, error};
+}
+
 function BuscaView(){
   const { state, integrationStatus } = useStore();
   const U=window.U;
@@ -8,8 +25,23 @@ function BuscaView(){
 
   const toggleScope=(k)=>setScope(s=>({...s,[k]:!s[k]}));
 
-  // local results (always available — searches the platform itself)
   const ql=q.trim().toLowerCase();
+
+  const driveActive = scope.drive && conn.drive;
+  const gmailActive = scope.gmail && conn.gmail;
+  const drive = useExternalSearch(driveActive, 'drive_search', ql);
+  const gmail = useExternalSearch(gmailActive, 'gmail_list', ql);
+  const driveResults = (drive.results.files||[]).map(f=>({
+    kind:'Google Drive', icon:f.mimeType && f.mimeType.includes('document')?'doc':'drive', title:f.name,
+    meta: f.modifiedTime ? 'editado em '+U.fmtDate(f.modifiedTime.slice(0,10),'long') : '', color:'var(--c-renato)', link:f.webViewLink,
+  }));
+  const gmailResults = (gmail.results.messages||[]).filter(m=>m&&m.id).map(m=>{
+    const headers=(m.payload&&m.payload.headers)||[];
+    const get=(n)=>(headers.find(h=>h.name===n)||{}).value||'';
+    return { kind:'Gmail', icon:'mail', title:get('Subject')||'(sem assunto)', meta:'de '+get('From'), color:'var(--c-vdec)' };
+  });
+
+  // local results (always available — searches the platform itself)
   const localResults = ql? [
     ...state.commitments.filter(c=>c.title.toLowerCase().includes(ql)||c.desc.toLowerCase().includes(ql)).slice(0,6).map(c=>({
       kind:'Compromisso', icon:'calendar', title:c.title, meta:U.fmtDate(c.date,'long')+(c.time?' · '+c.time:''), color:U.PROJ_BY_KEY[c.project].color
@@ -26,14 +58,15 @@ function BuscaView(){
   ] : [];
 
   const extScopes=[['drive','Google Drive','drive'],['gmail','Gmail','mail'],['docs','Google Docs','doc']];
-  const activeExt=extScopes.filter(([k])=>scope[k]);
+  const activeExt=extScopes.filter(([k])=>scope[k] && !conn[k]);
+  const totalExtResults = driveResults.length + gmailResults.length;
 
   return (
     <div className="view-enter" style={{maxWidth:840,margin:'0 auto'}}>
       <div style={{textAlign:'center',marginBottom:6}}>
         <span style={{width:50,height:50,borderRadius:14,background:'var(--olive-50)',color:'var(--olive)',display:'inline-grid',placeItems:'center',marginBottom:12}}><Icon name="sparkles" size={26}/></span>
         <h2 style={{fontSize:22,fontWeight:680,letterSpacing:'-.02em'}}>Busca inteligente</h2>
-        <p style={{fontSize:13.5,color:'var(--muted)',marginTop:5,maxWidth:520,marginInline:'auto'}}>Pesquise dentro da plataforma e, quando conectado, nos seus locais do Google. A IA entende o contexto das suas coisas para responder melhor.</p>
+        <p style={{fontSize:13.5,color:'var(--muted)',marginTop:5,maxWidth:520,marginInline:'auto'}}>Pesquise dentro da plataforma e, quando conectado, nos seus locais do Google.</p>
       </div>
 
       <div style={{position:'relative',margin:'22px 0 14px'}}>
@@ -72,7 +105,7 @@ function BuscaView(){
             <span style={{width:30,height:30,borderRadius:9,background:'var(--olive)',color:'#fff',display:'grid',placeItems:'center',flex:'0 0 30px'}}><Icon name="sparkles" size={16}/></span>
             <div>
               <div style={{fontWeight:600,fontSize:13,marginBottom:3}}>Resposta da IA</div>
-              <div style={{fontSize:12.5,color:'var(--ink-2)',lineHeight:1.55}}>Encontrei <b>{localResults.length}</b> resultado(s) nesta plataforma para “{q}”. {activeExt.length>0 && <>Para incluir resultados de <b>{activeExt.map(e=>e[1]).join(', ')}</b> e gerar um resumo com IA, é necessário conectar suas contas.</>}</div>
+              <div style={{fontSize:12.5,color:'var(--ink-2)',lineHeight:1.55}}>Encontrei <b>{localResults.length}</b> resultado(s) nesta plataforma{totalExtResults>0 && <> e <b>{totalExtResults}</b> nas suas contas conectadas do Google</>} para “{q}”. {activeExt.length>0 && <>Para incluir resultados de <b>{activeExt.map(e=>e[1]).join(', ')}</b>, conecte na aba Integrações.</>}</div>
             </div>
           </div>
         </Card>
@@ -93,11 +126,55 @@ function BuscaView(){
           ))}
         </Card>}
 
-        {/* external scope placeholders */}
+        {/* real Google Drive results */}
+        {driveActive && <>
+          <div style={{fontSize:11,fontWeight:600,letterSpacing:'.06em',textTransform:'uppercase',color:'var(--faint)',margin:'20px 4px 8px'}}>Google Drive</div>
+          {drive.loading ? <div style={{fontSize:12.5,color:'var(--muted)',padding:'8px 4px'}}>Buscando…</div> :
+          drive.error ? <div className="notice"><Icon name="alert"/><div>{drive.error}</div></div> :
+          driveResults.length===0 ? <div className="empty"><Icon name="drive"/><div>Nada encontrado no Drive.</div></div> :
+          <Card pad={false}>
+            {driveResults.map((r,i)=>(
+              <a key={i} href={r.link} target="_blank" rel="noopener" style={{display:'flex',alignItems:'center',gap:12,padding:'12px 18px',borderBottom:i<driveResults.length-1?'1px solid var(--border-2)':'none',textDecoration:'none',color:'inherit'}}>
+                <span style={{width:32,height:32,borderRadius:9,background:`color-mix(in srgb,${r.color} 13%,#fff)`,color:r.color,display:'grid',placeItems:'center',flex:'0 0 32px'}}><Icon name={r.icon} size={16}/></span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:550,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.title}</div>
+                  <div style={{fontSize:11.5,color:'var(--faint)'}}>{r.meta}</div>
+                </div>
+                <Icon name="external" size={15} style={{color:'var(--muted)'}}/>
+              </a>
+            ))}
+          </Card>}
+        </>}
+
+        {/* real Gmail results */}
+        {gmailActive && <>
+          <div style={{fontSize:11,fontWeight:600,letterSpacing:'.06em',textTransform:'uppercase',color:'var(--faint)',margin:'20px 4px 8px'}}>Gmail</div>
+          {gmail.loading ? <div style={{fontSize:12.5,color:'var(--muted)',padding:'8px 4px'}}>Buscando…</div> :
+          gmail.error ? <div className="notice"><Icon name="alert"/><div>{gmail.error}</div></div> :
+          gmailResults.length===0 ? <div className="empty"><Icon name="mail"/><div>Nada encontrado no Gmail.</div></div> :
+          <Card pad={false}>
+            {gmailResults.map((r,i)=>(
+              <div key={i} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 18px',borderBottom:i<gmailResults.length-1?'1px solid var(--border-2)':'none'}}>
+                <span style={{width:32,height:32,borderRadius:9,background:`color-mix(in srgb,${r.color} 13%,#fff)`,color:r.color,display:'grid',placeItems:'center',flex:'0 0 32px'}}><Icon name={r.icon} size={16}/></span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:13,fontWeight:550,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.title}</div>
+                  <div style={{fontSize:11.5,color:'var(--faint)'}}>{r.meta}</div>
+                </div>
+              </div>
+            ))}
+          </Card>}
+        </>}
+
+        {scope.docs && conn.docs && <>
+          <div style={{fontSize:11,fontWeight:600,letterSpacing:'.06em',textTransform:'uppercase',color:'var(--faint)',margin:'20px 4px 8px'}}>Google Docs</div>
+          <div className="notice"><Icon name="alert"/><div>Documentos do Google Docs já aparecem junto com os resultados do Google Drive acima (Drive lista todos os arquivos, incluindo Docs).</div></div>
+        </>}
+
+        {/* not-yet-connected scope placeholders */}
         {activeExt.map(([k,l,ic])=>(
           <div key={k}>
             <div style={{fontSize:11,fontWeight:600,letterSpacing:'.06em',textTransform:'uppercase',color:'var(--faint)',margin:'20px 4px 8px'}}>{l}</div>
-            <div className="notice"><Icon name="alert"/><div><b>{l} não conectado.</b> Conecte na aba Integrações para buscar e resumir seus arquivos e mensagens com IA. <i>Requer conexão real.</i></div></div>
+            <div className="notice"><Icon name="alert"/><div><b>{l} não conectado.</b> Conecte na aba Integrações para buscar aqui.</div></div>
           </div>
         ))}
       </>}
