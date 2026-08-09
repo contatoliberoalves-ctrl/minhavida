@@ -149,7 +149,7 @@ function AgendaView(){
   const [filter,setFilter]=React.useState('proximos'); // proximos | todos | concluidos
   const [prio,setPrio]=React.useState('todas'); // todas | urgente | quase | espera
   const [modal,setModal]=React.useState(null); // commitment or 'new'
-  const [cursor,setCursor]=React.useState({m:5,y:2026}); // junho 2026
+  const [cursor,setCursor]=React.useState(()=>{ const t=window.U.parseDate(window.U.TODAY); return {m:t.getMonth(), y:t.getFullYear()}; });
 
   let items = state.commitments.slice();
   if(proj!=='todos') items=items.filter(c=>c.project===proj);

@@ -31,7 +31,7 @@ function brlShort(n){
   if(Math.abs(v)>=1000) return 'R$ '+(v/1000).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'k';
   return 'R$ '+v.toLocaleString('pt-BR',{maximumFractionDigits:0});
 }
-const TODAY = '2026-06-13'; // data atual do projeto
+const TODAY = toISO(new Date()); // data real do dispositivo (mesma referência do Google Agenda)
 function daysFromToday(s){
   const a=parseDate(TODAY), b=parseDate(s);
   return Math.round((b-a)/86400000);
