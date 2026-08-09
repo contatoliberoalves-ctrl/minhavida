@@ -238,17 +238,35 @@ function StoreProvider({children}){
   },[session && session.user && session.user.id]);
 
   // persiste alterações locais no Supabase (debounced), ignorando o que acabamos de carregar/receber
+  const pendingSaveRef = React.useRef(null); // {toSave,json,email} aguardando ser salvo
+  const flushPendingSave = React.useCallback(()=>{
+    const pending = pendingSaveRef.current;
+    if(!pending) return;
+    pendingSaveRef.current = null;
+    window.SB.from('mv_state').update({ data: pending.toSave, updated_at: new Date().toISOString(), updated_by: pending.email }).eq('id','household')
+      .then(({error})=>{ if(!error) lastSyncedRef.current = pending.json; });
+  },[]);
+
   React.useEffect(()=>{
     if(!session || !state) return;
     const { activeProfile, ...toSave } = state;
     const json = JSON.stringify(toSave);
     if(json===lastSyncedRef.current) return;
-    const t = setTimeout(()=>{
-      window.SB.from('mv_state').update({ data: toSave, updated_at: new Date().toISOString(), updated_by: session.user.email }).eq('id','household')
-        .then(({error})=>{ if(!error) lastSyncedRef.current = json; });
-    }, 500);
+    pendingSaveRef.current = { toSave, json, email: session.user.email };
+    const t = setTimeout(flushPendingSave, 500);
     return ()=> clearTimeout(t);
-  },[state, session]);
+  },[state, session, flushPendingSave]);
+
+  // salva imediatamente se a aba for escondida/fechada com uma edição pendente
+  React.useEffect(()=>{
+    const onHide = ()=>{ if(document.visibilityState==='hidden') flushPendingSave(); };
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', flushPendingSave);
+    return ()=>{
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', flushPendingSave);
+    };
+  },[flushPendingSave]);
 
   const signIn = async (email,password)=>{
     setAuthError('');
@@ -317,11 +335,11 @@ function StoreProvider({children}){
     addBill:(b)=>setState(s=>({...s, bills:[...s.bills,{...b,id:'b'+Date.now()}]})),
     updateBill:(id,patch)=>setState(s=>({...s, bills:s.bills.map(b=>b.id===id?{...b,...patch}:b)})),
     removeBill:(id)=>setState(s=>({...s, bills:s.bills.filter(b=>b.id!==id)})),
-    toggleBillPaid:(id)=>setState(s=>{
-      const bill=s.bills.find(b=>b.id===id);
+    toggleBillPaid:(id)=>{
+      const bill=state.bills.find(b=>b.id===id);
       if(bill && !bill.paid) notifySlack(`💸 Conta paga: *${bill.desc}* (${window.U.brl(bill.amount)})`);
-      return {...s, bills:s.bills.map(b=>b.id===id?{...b,paid:!b.paid,paidDate:!b.paid?window.U.TODAY:''}:b)};
-    }),
+      setState(s=>({...s, bills:s.bills.map(b=>b.id===id?{...b,paid:!b.paid,paidDate:!b.paid?window.U.TODAY:''}:b)}));
+    },
     // metas
     addGoal:(g)=>setState(s=>({...s, goals:[...s.goals,{...g,id:'g'+Date.now()}]})),
     updateGoal:(id,patch)=>setState(s=>({...s, goals:s.goals.map(g=>g.id===id?{...g,...patch}:g)})),

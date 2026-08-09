@@ -7,11 +7,14 @@ function useExternalSearch(active, api, ql){
     if(!active || !ql){ setResults([]); return; }
     let alive=true;
     setLoading(true); setError('');
-    window.mvCallFunction('google-api', {api, q: ql})
-      .then(r=>{ if(alive) setResults(r); })
-      .catch(e=>{ if(alive) setError(e.message); })
-      .finally(()=>{ if(alive) setLoading(false); });
-    return ()=>{ alive=false; };
+    // aguarda uma pausa na digitação antes de chamar a API do Google
+    const t = setTimeout(()=>{
+      window.mvCallFunction('google-api', {api, q: ql})
+        .then(r=>{ if(alive) setResults(r); })
+        .catch(e=>{ if(alive) setError(e.message); })
+        .finally(()=>{ if(alive) setLoading(false); });
+    }, 450);
+    return ()=>{ alive=false; clearTimeout(t); };
   },[active, api, ql]);
   return {results, loading, error};
 }
