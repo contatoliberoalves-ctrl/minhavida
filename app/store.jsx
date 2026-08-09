@@ -279,10 +279,38 @@ function StoreProvider({children}){
     if(error) setAuthError(error.message);
   };
   const signOut = ()=> window.SB.auth.signOut();
+  const changePassword = async (password)=>{
+    const { error } = await window.SB.auth.updateUser({ password });
+    return error ? error.message : null;
+  };
 
   const notifySlack = (text)=>{
     window.mvCallFunction('slack-notify', {text}).catch(()=>{});
   };
+
+  // avisa no Slack quando uma meta é batida por causa de uma mudança nesta sessão
+  // (não avisa sobre metas que já estavam batidas antes de abrir o app)
+  const hitGoalsRef = React.useRef(null);
+  React.useEffect(()=>{
+    if(!state) return;
+    const thisMonth=(d)=>{ if(!d) return false; const x=window.U.parseDate(d), t=window.U.parseDate(window.U.TODAY); return x.getMonth()===t.getMonth()&&x.getFullYear()===t.getFullYear(); };
+    const currentOf=(g)=>{
+      if(g.type==='receita') return state.tx.filter(t=>t.type==='income'&&thisMonth(t.date)).reduce((a,t)=>a+t.amount,0);
+      if(g.type==='alunos') return state.students.filter(s=>s.status==='ativo').length;
+      if(g.type==='posts') return state.content.filter(c=>c.status==='publicado'&&thisMonth(c.date)).length;
+      if(/ízimo|dizimo/i.test(g.label)) return (state.tithes||[]).filter(t=>thisMonth(t.date)).reduce((a,t)=>a+t.amount,0);
+      return g.current||0;
+    };
+    const hitNow = new Set(state.goals.filter(g=>g.target>0 && currentOf(g)>=g.target).map(g=>g.id));
+    if(hitGoalsRef.current===null){ hitGoalsRef.current = hitNow; return; }
+    hitNow.forEach(id=>{
+      if(!hitGoalsRef.current.has(id)){
+        const g = state.goals.find(x=>x.id===id);
+        if(g) notifySlack(`🎯 Meta batida: *${g.label}*!`);
+      }
+    });
+    hitGoalsRef.current = hitNow;
+  },[state]);
 
   const api = React.useMemo(()=>({
     // commitments
@@ -382,7 +410,7 @@ function StoreProvider({children}){
   }), [state, notifySlack]);
 
   const value = React.useMemo(()=>({
-    state, session, authError, integrationStatus, signIn, signUp, signOut, notifySlack, ...api,
+    state, session, authError, integrationStatus, signIn, signUp, signOut, changePassword, notifySlack, ...api,
   }), [state, session, authError, integrationStatus, api]);
   return React.createElement(StoreCtx.Provider, {value}, children);
 }

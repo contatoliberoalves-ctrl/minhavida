@@ -1,4 +1,39 @@
 /* ===== Minha Vida — Integrações ===== */
+function AccountCard(){
+  const { session, changePassword } = useStore();
+  const [pw,setPw]=React.useState('');
+  const [pw2,setPw2]=React.useState('');
+  const [busy,setBusy]=React.useState(false);
+  const [msg,setMsg]=React.useState(null);
+
+  const submit=async(e)=>{
+    e.preventDefault();
+    if(pw.length<6){ setMsg({type:'error',text:'A senha precisa ter pelo menos 6 caracteres.'}); return; }
+    if(pw!==pw2){ setMsg({type:'error',text:'As senhas não coincidem.'}); return; }
+    setBusy(true); setMsg(null);
+    const err = await changePassword(pw);
+    setBusy(false);
+    if(err) setMsg({type:'error',text:err});
+    else { setMsg({type:'ok',text:'Senha alterada com sucesso!'}); setPw(''); setPw2(''); }
+  };
+
+  return (
+    <>
+      <h3 style={{fontSize:13,fontWeight:600,letterSpacing:'.04em',textTransform:'uppercase',color:'var(--faint)',marginBottom:12}}>Minha conta</h3>
+      <div className="card" style={{padding:18,marginBottom:30,maxWidth:420}}>
+        <div style={{fontSize:12.5,color:'var(--muted)',marginBottom:14}}>Conectado como <b>{session && session.user && session.user.email}</b></div>
+        <form onSubmit={submit} style={{display:'flex',flexDirection:'column',gap:10}}>
+          <div className="field"><label>Nova senha</label><input className="input" type="password" minLength={6} value={pw} onChange={e=>setPw(e.target.value)} placeholder="Pelo menos 6 caracteres"/></div>
+          <div className="field"><label>Confirmar nova senha</label><input className="input" type="password" minLength={6} value={pw2} onChange={e=>setPw2(e.target.value)} placeholder="Repita a senha"/></div>
+          {msg && <div className="notice" style={{borderColor: msg.type==='error' ? 'color-mix(in srgb,#c0392b 30%,#fff)' : undefined}}><Icon name="alert"/><div>{msg.text}</div></div>}
+          <button className="btn btn-primary btn-sm" type="submit" disabled={busy||!pw||!pw2} style={{alignSelf:'flex-start'}}>
+            {busy?'Alterando…':'Alterar senha'}</button>
+        </form>
+      </div>
+    </>
+  );
+}
+
 function IntegracoesView(){
   const { integrationStatus, notifySlack } = useStore();
   const [busy,setBusy]=React.useState('');
@@ -73,6 +108,7 @@ function IntegracoesView(){
 
   return (
     <div className="view-enter" style={{maxWidth:920}}>
+      <AccountCard/>
       {msg && <div className="notice" style={{marginBottom:22, borderColor: msg.type==='error' ? 'color-mix(in srgb,#c0392b 30%,#fff)' : undefined}}>
         <Icon name="alert"/><div>{msg.text}</div>
       </div>}
