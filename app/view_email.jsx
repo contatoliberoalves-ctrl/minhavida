@@ -33,6 +33,7 @@ function EmailView(){
   const [liveError,setLiveError]=React.useState('');
   const [loadingLive,setLoadingLive]=React.useState(false);
   const [overrides,setOverrides]=React.useState({});
+  const [bodyCache,setBodyCache]=React.useState({}); // id -> {html,text,loading,error}
 
   React.useEffect(()=>{
     if(!connected){ setLiveEmails(null); return; }
@@ -63,6 +64,13 @@ function EmailView(){
     if(e.unread){
       if(isLive(e.id)) setOverrides(o=>({...o,[e.id]:{...o[e.id], unread:false}}));
       else markRead(e.id);
+    }
+    if(isLive(e.id) && !bodyCache[e.id]){
+      const gmailId = e.id.replace(/^gm_/,'');
+      setBodyCache(c=>({...c,[e.id]:{loading:true}}));
+      window.mvCallFunction('google-api', {api:'gmail_get', id: gmailId})
+        .then(r=> setBodyCache(c=>({...c,[e.id]:{loading:false, html:r.html, text:r.text}})))
+        .catch(err=> setBodyCache(c=>({...c,[e.id]:{loading:false, error: err.message}})));
     }
   };
   const handleToggleStar=(id)=>{
@@ -156,10 +164,7 @@ function EmailView(){
               <button className="btn btn-sm btn-ghost" style={{marginLeft:'auto'}} onClick={()=>setCommitFrom(sel)}><Icon name="calendar" size={13}/>Criar compromisso</button>
             </div>
 
-            <div style={{padding:'22px',fontSize:13.5,color:'var(--ink-2)',lineHeight:1.65}}>
-              <p style={{marginBottom:12}}>{sel.preview}</p>
-              {!connected && <p style={{marginBottom:12,color:'var(--faint)',fontStyle:'italic'}}>[ conteúdo completo do e-mail aparece aqui quando sua conta do Gmail estiver conectada ]</p>}
-            </div>
+            <EmailBody sel={sel} connected={connected} body={isLive(sel.id) ? bodyCache[sel.id] : null}/>
             <div style={{padding:'16px 22px',borderTop:'1px solid var(--border-2)',display:'flex',gap:10,flexWrap:'wrap'}}>
               <button className="btn btn-primary" onClick={()=>setReply(sel)}><Icon name="send" size={15}/>Responder</button>
               <button className="btn btn-ghost" onClick={()=>setFwd(sel)}><Icon name="external" size={15}/>Encaminhar com meu aval</button>
@@ -175,6 +180,31 @@ function EmailView(){
         onClose={()=>setCommitFrom(null)}/>}
     </div>
   );
+}
+
+function EmailBody({sel, connected, body}){
+  const wrapStyle={padding:'22px',fontSize:13.5,color:'var(--ink-2)',lineHeight:1.65};
+
+  if(!connected){
+    return <div style={wrapStyle}>
+      <p style={{marginBottom:12}}>{sel.preview}</p>
+      <p style={{color:'var(--faint)',fontStyle:'italic'}}>[ conteúdo completo do e-mail, com imagens, aparece aqui quando sua conta do Gmail estiver conectada ]</p>
+    </div>;
+  }
+  if(!body || body.loading){
+    return <div style={wrapStyle}><p style={{marginBottom:12}}>{sel.preview}</p><p style={{color:'var(--faint)'}}>Carregando o e-mail completo…</p></div>;
+  }
+  if(body.error){
+    return <div style={{padding:'22px'}}>
+      <p style={{marginBottom:12,fontSize:13.5,color:'var(--ink-2)'}}>{sel.preview}</p>
+      <div className="notice"><Icon name="alert"/><div>Não consegui carregar o conteúdo completo: {body.error}</div></div>
+    </div>;
+  }
+  if(body.html){
+    const clean = window.DOMPurify.sanitize(body.html, {ADD_ATTR:['target']});
+    return <div style={{padding:'22px'}} className="email-body-html" dangerouslySetInnerHTML={{__html:clean}}/>;
+  }
+  return <div style={wrapStyle}><p style={{whiteSpace:'pre-wrap'}}>{body.text || sel.preview}</p></div>;
 }
 
 function ReplyModal({email,connected,onClose}){
