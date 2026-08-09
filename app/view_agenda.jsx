@@ -3,10 +3,12 @@ function CommitmentRow({c, onEdit}){
   const { toggleDone } = useStore();
   const p = window.U.PROJ_BY_KEY[c.project];
   const [lb,setLb]=React.useState(-1);
+  const overdue = !c.done && window.U.daysFromToday(c.date)<0;
   return (
     <div className="commit-row" style={{
-      display:'flex',alignItems:'flex-start',gap:13,padding:'13px 4px',borderBottom:'1px solid var(--border-2)',
-      opacity:c.done?.55:1
+      display:'flex',alignItems:'flex-start',gap:13,padding:'13px 12px 13px 14px',borderBottom:'1px solid var(--border-2)',
+      borderLeft:'3px solid '+(c.done?'var(--border-2)':p.color), background: overdue?'color-mix(in srgb,var(--danger) 5%,#fff)':'transparent',
+      opacity:c.done?.55:1, transition:'background .12s'
     }}>
       <button onClick={()=>toggleDone(c.id)} title="Concluir" style={{
         marginTop:1,width:21,height:21,flex:'0 0 21px',borderRadius:7,border:'1.8px solid '+(c.done?'var(--ok)':'var(--border)'),
@@ -16,6 +18,7 @@ function CommitmentRow({c, onEdit}){
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
           <span style={{fontWeight:550,fontSize:13.5,textDecoration:c.done?'line-through':'none'}}>{c.title}</span>
           {!c.done && <PriorityBadge priority={window.priorityOf(c)}/>}
+          {overdue && <span className="chip" style={{fontSize:10,padding:'1px 8px',color:'var(--danger)',borderColor:'color-mix(in srgb,var(--danger) 35%,#fff)',fontWeight:600}}><Icon name="alert" size={11}/>Atrasado</span>}
           {c.section && <span className="chip" style={{fontSize:10,padding:'1px 8px',color:'var(--muted)'}}>{c.section}</span>}
           {c.meet && <span className="chip" style={{fontSize:10.5,padding:'1px 8px',color:'var(--c-vdec)',borderColor:'color-mix(in srgb,var(--c-vdec) 30%,#fff)'}}><Icon name="video" size={12}/>Meet</span>}
           {c.images && c.images.length>0 && <span className="chip" style={{fontSize:10.5,padding:'1px 8px',color:'var(--muted)'}}><Icon name="camera" size={12}/>{c.images.length}</span>}
@@ -168,11 +171,26 @@ function AgendaView(){
   const monthName = U.MONTHS[cursor.m]+' '+cursor.y;
   const moveMonth=(d)=>setCursor(c=>{ let m=c.m+d,y=c.y; if(m<0){m=11;y--;} if(m>11){m=0;y++;} return {m,y}; });
 
+  // resumo do topo (sempre olha todos os compromissos, ignorando os filtros da lista)
+  const all = state.commitments;
+  const kpiHoje = all.filter(c=>!c.done && c.date===U.TODAY).length;
+  const kpiSemana = all.filter(c=>!c.done && U.daysFromToday(c.date)>=0 && U.daysFromToday(c.date)<=6).length;
+  const kpiAtrasados = all.filter(c=>!c.done && U.daysFromToday(c.date)<0).length;
+  const thisMonthDone = all.filter(c=>{ if(!c.done) return false; const d=U.parseDate(c.date), t=U.parseDate(U.TODAY); return d.getMonth()===t.getMonth()&&d.getFullYear()===t.getFullYear(); }).length;
+
   return (
     <div className="view-enter">
+      <div className="grid" style={{gridTemplateColumns:'repeat(4,1fr)',marginBottom:18}}>
+        <KPI label="Hoje" icon="calendar" value={kpiHoje} meta="compromissos"/>
+        <KPI label="Esta semana" icon="clock" value={kpiSemana} meta="próximos 7 dias"/>
+        <KPI label="Atrasados" icon="alert" value={kpiAtrasados} meta={kpiAtrasados>0?'precisam de atenção':'tudo em dia'} accent={kpiAtrasados>0?'var(--danger)':'var(--ok)'}/>
+        <KPI label="Concluídos" icon="check" value={thisMonthDone} meta="este mês" accent="var(--ok)"/>
+      </div>
+
       <GoogleAgendaCard/>
+
       {/* toolbar */}
-      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:18,flexWrap:'wrap'}}>
+      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:14,flexWrap:'wrap'}}>
         <div className="seg">
           <button className={view==='lista'?'on':''} onClick={()=>setView('lista')}><Icon name="list" size={14} style={{verticalAlign:'-2px',marginRight:5}}/>Lista</button>
           <button className={view==='mes'?'on':''} onClick={()=>setView('mes')}><Icon name="calendar" size={14} style={{verticalAlign:'-2px',marginRight:5}}/>Calendário</button>
@@ -180,16 +198,6 @@ function AgendaView(){
         {view==='lista' && <div className="seg">
           {[['proximos','Próximos'],['concluidos','Concluídos'],['todos','Todos']].map(([k,l])=>
             <button key={k} className={filter===k?'on':''} onClick={()=>setFilter(k)}>{l}</button>)}
-        </div>}
-        {view==='lista' && <div className="pill-row" style={{gap:6}}>
-          {[['todas','Todas'],['urgente','Urgente'],['quase','Quase urgente'],['espera','Dá pra esperar']].map(([k,l])=>{
-            const col = k==='todas'?'var(--olive)':window.PRIORITIES[k].color;
-            const on = prio===k;
-            return <button key={k} className="chip" onClick={()=>setPrio(k)} style={{cursor:'pointer',
-              borderColor:on?col:'var(--border)',background:on?`color-mix(in srgb,${col} 12%,#fff)`:'#fff',
-              color:on?col:'var(--ink-2)',fontWeight:on?600:500,padding:'6px 11px',fontSize:11.5}}>
-              {k!=='todas' && <span className="dot" style={{background:col}}></span>}{l}</button>;
-          })}
         </div>}
         {view==='mes' && <div style={{display:'flex',alignItems:'center',gap:6}}>
           <button className="btn btn-icon btn-ghost" onClick={()=>moveMonth(-1)}><Icon name="chevronL" size={16}/></button>
@@ -199,8 +207,21 @@ function AgendaView(){
         <button className="btn btn-primary" style={{marginLeft:'auto'}} onClick={()=>setModal('new')}><Icon name="plus" size={16}/>Novo compromisso</button>
       </div>
 
+      {view==='lista' && <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginBottom:14}}>
+        <span style={{fontSize:11,color:'var(--faint)',fontWeight:600,marginRight:2}}>Prioridade:</span>
+        {[['todas','Todas'],['urgente','Urgente'],['quase','Quase urgente'],['espera','Dá pra esperar']].map(([k,l])=>{
+          const col = k==='todas'?'var(--olive)':window.PRIORITIES[k].color;
+          const on = prio===k;
+          return <button key={k} className="chip" onClick={()=>setPrio(k)} style={{cursor:'pointer',
+            borderColor:on?col:'var(--border)',background:on?`color-mix(in srgb,${col} 12%,#fff)`:'#fff',
+            color:on?col:'var(--ink-2)',fontWeight:on?600:500,padding:'6px 11px',fontSize:11.5}}>
+            {k!=='todas' && <span className="dot" style={{background:col}}></span>}{l}</button>;
+        })}
+      </div>}
+
       {/* project tabs */}
-      <div style={{display:'flex',gap:7,flexWrap:'wrap',marginBottom:20,overflowX:'auto',paddingBottom:2}}>
+      <div style={{display:'flex',alignItems:'center',gap:7,flexWrap:'wrap',marginBottom:20,overflowX:'auto',paddingBottom:2}}>
+        <span style={{fontSize:11,color:'var(--faint)',fontWeight:600,marginRight:2}}>Projeto:</span>
         {projects.map(p=>(
           <button key={p.key} onClick={()=>setProj(p.key)} className="chip" style={{
             cursor:'pointer',whiteSpace:'nowrap',
@@ -214,17 +235,23 @@ function AgendaView(){
       </div>
 
       {view==='lista' ? (
-        <Card>
+        <Card pad={false}>
           {dates.length===0 ? <div className="empty"><Icon name="calendar"/><div>Nenhum compromisso aqui.</div></div> :
-          dates.map(date=>(
-            <div key={date} style={{marginBottom:8}}>
-              <div style={{display:'flex',alignItems:'baseline',gap:9,padding:'6px 4px 4px',position:'sticky'}}>
-                <span style={{fontSize:13,fontWeight:650,color:'var(--ink)'}}>{U.fmtDate(date,'full').replace(/^\w/,m=>m.toUpperCase())}</span>
-                <span style={{fontSize:11.5,color:'var(--olive)',fontWeight:600}}>{U.relDate(date)}</span>
+          dates.map(date=>{
+            const isToday = date===U.TODAY;
+            const isPast = U.daysFromToday(date)<0;
+            return (
+            <div key={date}>
+              <div style={{display:'flex',alignItems:'baseline',gap:9,padding:'10px 16px',
+                background: isToday?'var(--olive-50)':'var(--surface-2)', borderBottom:'1px solid var(--border-2)'}}>
+                {isToday
+                  ? <span className="chip" style={{fontSize:10.5,padding:'2px 9px',color:'#fff',background:'var(--olive)',borderColor:'var(--olive)',fontWeight:650}}>HOJE</span>
+                  : <span style={{fontSize:13,fontWeight:650,color:isPast?'var(--danger)':'var(--ink)'}}>{U.fmtDate(date,'full').replace(/^\w/,m=>m.toUpperCase())}</span>}
+                <span style={{fontSize:11.5,color:isToday?'var(--olive-800)':'var(--faint)',fontWeight:600}}>{U.relDate(date)}</span>
               </div>
               {groups[date].map(c=><CommitmentRow key={c.id} c={c} onEdit={setModal}/>)}
             </div>
-          ))}
+          );})}
         </Card>
       ) : (
         <Card>
