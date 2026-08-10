@@ -69,6 +69,7 @@ function migrate(s){
   if(!s.playbookChecks) s.playbookChecks = {};
   if(!s.playbookExtra) s.playbookExtra = [];
   if(!s.emailMeta) s.emailMeta = {};
+  if(!s.diversao) s.diversao = [];
   // migra checks booleanos antigos -> objetos ricos {done,date,notes,links,images}
   if(!s._playbookRich){
     const rich={};
@@ -388,6 +389,10 @@ function StoreProvider({children}){
     addReading:(r)=>setState(s=>({...s, readings:[...s.readings,{...r,id:'rd'+Date.now()}]})),
     updateReading:(id,patch)=>setState(s=>({...s, readings:s.readings.map(r=>r.id===id?{...r,...patch}:r)})),
     removeReading:(id)=>setState(s=>({...s, readings:s.readings.filter(r=>r.id!==id)})),
+    // diversão
+    addDiversao:(d)=>setState(s=>({...s, diversao:[...s.diversao,{...d,id:'dv'+Date.now()}]})),
+    updateDiversao:(id,patch)=>setState(s=>({...s, diversao:s.diversao.map(d=>d.id===id?{...d,...patch}:d)})),
+    removeDiversao:(id)=>setState(s=>({...s, diversao:s.diversao.filter(d=>d.id!==id)})),
     // playbook de lançamento
     togglePlaybookTask:(launchKey,taskId)=>setState(s=>{
       const cur=s.playbookChecks[launchKey]||{};

@@ -79,12 +79,47 @@ function ReadingModal({initial,onClose}){
   );
 }
 
+const DIVERSAO_CATS = {
+  'Filme/Série': {icon:'video', color:'var(--c-pratflix)'},
+  'Passeio':     {icon:'sun',   color:'var(--c-vdec)'},
+  'Viagem':      {icon:'globe', color:'var(--c-renato)'},
+  'Outro':       {icon:'sparkles', color:'var(--muted)'},
+};
+
+function DiversaoModal({initial,onClose}){
+  const { addDiversao, updateDiversao, removeDiversao } = useStore();
+  const isEdit=!!(initial&&initial.id);
+  const [f,setF]=React.useState(()=>({title:'',category:'Filme/Série',status:'quero',date:'',notes:'',...(initial||{})}));
+  const set=(k,v)=>setF(s=>({...s,[k]:v}));
+  const save=()=>{ if(!f.title.trim())return; if(isEdit)updateDiversao(initial.id,f); else addDiversao(f); onClose(); };
+  return (
+    <Modal title={isEdit?'Editar diversão':'Nova diversão'} icon="sparkles" onClose={onClose}
+      footer={<>
+        {isEdit && <button className="btn btn-ghost" style={{marginRight:'auto',color:'var(--danger)',borderColor:'transparent'}} onClick={()=>{removeDiversao(initial.id);onClose();}}><Icon name="trash" size={15}/>Excluir</button>}
+        <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+        <button className="btn btn-primary" onClick={save}><Icon name="check" size={15}/>{isEdit?'Salvar':'Adicionar'}</button>
+      </>}>
+      <div className="grid" style={{gap:15}}>
+        <div className="field"><label>O que é?</label><input className="input" autoFocus value={f.title} onChange={e=>set('title',e.target.value)} placeholder="Ex.: Assistir Duna 2, Praia de Porto de Galinhas..."/></div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
+          <div className="field"><label>Categoria</label><select className="input" value={f.category} onChange={e=>set('category',e.target.value)}>{Object.keys(DIVERSAO_CATS).map(c=><option key={c} value={c}>{c}</option>)}</select></div>
+          <div className="field"><label>Status</label><select className="input" value={f.status} onChange={e=>set('status',e.target.value)}><option value="quero">Quero fazer</option><option value="feito">Já fiz</option></select></div>
+        </div>
+        <div className="field"><label>Data <span style={{color:'var(--faint)',fontWeight:400}}>(opcional)</span></label><input className="input" type="date" value={f.date} onChange={e=>set('date',e.target.value)}/></div>
+        <div className="field"><label>Notas <span style={{color:'var(--faint)',fontWeight:400}}>(opcional)</span></label><textarea className="input" value={f.notes} onChange={e=>set('notes',e.target.value)} placeholder="Detalhes, com quem, onde..."/></div>
+      </div>
+    </Modal>
+  );
+}
+
 function AperfeicoamentoView(){
   const { state, togglePractice } = useStore();
   const U=window.U;
   const [modal,setModal]=React.useState(null); // practice detail
   const [rmodal,setRmodal]=React.useState(null); // reading
   const [pmodal,setPmodal]=React.useState(false); // nova atividade
+  const [dmodal,setDmodal]=React.useState(null); // diversão
+  const [dcat,setDcat]=React.useState('todas'); // filtro de categoria da diversão
   const week=weekDays();
   const logSet=new Set(state.practiceLogs.map(l=>l.practice+'|'+l.date));
   const did=(pk,date)=>logSet.has(pk+'|'+date);
@@ -190,9 +225,51 @@ function AperfeicoamentoView(){
         </div>
       </Card>
 
+      {/* diversão */}
+      <Card style={{marginTop:18}}>
+        <SectionH title="Diversão" sub={state.diversao.length+' ideias e programas'}
+          action={<button className="btn btn-primary btn-sm" onClick={()=>setDmodal('new')}><Icon name="plus" size={14}/>Diversão</button>}/>
+        <div style={{display:'flex',gap:7,flexWrap:'wrap',marginBottom:16}}>
+          {[['todas','Todas'],...Object.keys(DIVERSAO_CATS).map(c=>[c,c])].map(([k,l])=>{
+            const on=dcat===k;
+            const col=k==='todas'?'var(--olive)':DIVERSAO_CATS[k].color;
+            return <button key={k} onClick={()=>setDcat(k)} className="chip" style={{cursor:'pointer',
+              borderColor:on?col:'var(--border)',background:on?`color-mix(in srgb,${col} 12%,#fff)`:'#fff',
+              color:on?col:'var(--ink-2)',fontWeight:on?600:500,padding:'6px 11px',fontSize:11.5}}>
+              {k!=='todas' && <span className="dot" style={{background:col}}></span>}{l}</button>;
+          })}
+        </div>
+        {state.diversao.length===0 ? <div className="empty"><Icon name="sparkles"/><div>Nenhuma diversão cadastrada ainda. Que tal adicionar um filme, passeio ou viagem?</div></div> :
+        (()=>{ const list = dcat==='todas' ? state.diversao : state.diversao.filter(d=>d.category===dcat);
+        return list.length===0 ? <div className="empty"><Icon name="sparkles"/><div>Nada nessa categoria ainda.</div></div> :
+        <div className="grid" style={{gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))'}}>
+          {list.map(d=>{
+            const cat=DIVERSAO_CATS[d.category]||DIVERSAO_CATS['Outro'];
+            const feito=d.status==='feito';
+            return (
+              <div key={d.id} onClick={()=>setDmodal(d)} style={{border:'1px solid var(--border)',borderRadius:13,padding:14,cursor:'pointer',opacity:feito?.75:1}}>
+                <div style={{display:'flex',gap:11,alignItems:'flex-start'}}>
+                  <span style={{width:38,height:38,borderRadius:10,background:`color-mix(in srgb,${cat.color} 14%,#fff)`,color:cat.color,display:'grid',placeItems:'center',flex:'0 0 38px'}}><Icon name={cat.icon} size={18}/></span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:600,lineHeight:1.3,textDecoration:feito?'line-through':'none'}}>{d.title}</div>
+                    <div style={{display:'flex',gap:6,marginTop:6,flexWrap:'wrap'}}>
+                      <span className="chip" style={{fontSize:9.5,padding:'1px 7px',color:cat.color,borderColor:`color-mix(in srgb,${cat.color} 30%,#fff)`}}>{d.category}</span>
+                      <span className="chip" style={{fontSize:9.5,padding:'1px 7px',color:feito?'var(--ok)':'var(--faint)',borderColor:feito?'color-mix(in srgb,var(--ok) 30%,#fff)':'var(--border)'}}>{feito?'Feito ✓':'Quero fazer'}</span>
+                    </div>
+                    {d.date && <div style={{fontSize:10.5,color:'var(--faint)',marginTop:6}}>{window.U.fmtDate(d.date,'long')}</div>}
+                    {d.notes && <div style={{fontSize:11.5,color:'var(--muted)',marginTop:4}}>{d.notes}</div>}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>; })()}
+      </Card>
+
       {modal && <PracticeDetailModal practice={modal} onClose={()=>setModal(null)}/>}
       {rmodal && <ReadingModal initial={rmodal==='new'?null:rmodal} onClose={()=>setRmodal(null)}/>}
       {pmodal && <PracticeModal onClose={()=>setPmodal(false)}/>}
+      {dmodal && <DiversaoModal initial={dmodal==='new'?null:dmodal} onClose={()=>setDmodal(null)}/>}
     </div>
   );
 }
