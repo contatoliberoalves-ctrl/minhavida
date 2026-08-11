@@ -211,6 +211,7 @@ function App(){
           {effectivePage==='integracoes' && <IntegracoesView/>}
         </div>
       </main>
+      {(profile.access==='all' || profile.access.includes('financas')) && <QuickAddFab/>}
     </div>
   );
 }

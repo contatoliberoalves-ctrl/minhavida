@@ -31,9 +31,9 @@ function brlShort(n){
   if(Math.abs(v)>=1000) return 'R$ '+(v/1000).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+'k';
   return 'R$ '+v.toLocaleString('pt-BR',{maximumFractionDigits:0});
 }
-const TODAY = toISO(new Date()); // data real do dispositivo (mesma referência do Google Agenda)
+let TODAY = toISO(new Date()); // data real do dispositivo (mesma referência do Google Agenda)
 function daysFromToday(s){
-  const a=parseDate(TODAY), b=parseDate(s);
+  const a=parseDate(window.U.TODAY), b=parseDate(s);
   return Math.round((b-a)/86400000);
 }
 function relDate(s){
@@ -47,6 +47,22 @@ function relDate(s){
 }
 
 window.U = { PROJ_BY_KEY, MONTHS, MONTHS_SHORT, DOW, DOW_LONG, parseDate, toISO, fmtDate, brl, brlShort, TODAY, daysFromToday, relDate };
+
+// Se o app/PWA ficar aberto de um dia para o outro, TODAY não pode ficar
+// "travado" no dia em que a página carregou — senão a Início mostra 0
+// compromissos hoje enquanto a Agenda já rolou pro dia seguinte.
+// Atualiza sozinho a cada minuto e sempre que a aba volta a ficar visível,
+// e avisa o app (evento) pra tudo que depende de "hoje" se atualizar.
+function refreshToday(){
+  const t = toISO(new Date());
+  if(t !== window.U.TODAY){
+    window.U.TODAY = t;
+    window.dispatchEvent(new CustomEvent('mv:today-changed', {detail:t}));
+  }
+}
+setInterval(refreshToday, 60000);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') refreshToday(); });
+window.addEventListener('focus', refreshToday);
 
 // Prioridades dos compromissos
 window.PRIORITIES = {

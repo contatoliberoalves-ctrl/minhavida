@@ -39,38 +39,66 @@ function FinancasView(){
 
   const periodLabel={mes:'este mês',semestre:'este semestre',ano:'este ano'}[period];
 
+  const FREQ_CHIPS=[['todos','Todos'],['diario','Diários'],['mensal','Fixos mensais'],['semestral','Fixos semestrais'],['anual','Fixos anuais']];
   const ListBlock=({list,tags,type})=>{
     let l=list.slice().sort((a,b)=>b.date.localeCompare(a.date));
     if(type==='expense'&&gastoFreq!=='todos') l=l.filter(e=>e.freq===gastoFreq);
     const tm={}; tags.forEach(t=>tm[t.id]=t);
+    // agrupa por dia, tipo extrato — dá pra ver de cara quanto entrou/saiu em cada dia
+    const groups=[]; let cur=null;
+    l.forEach(t=>{
+      if(!cur||cur.date!==t.date){ cur={date:t.date,items:[],total:0}; groups.push(cur); }
+      cur.items.push(t); cur.total+=t.amount;
+    });
     return (
       <Card pad={false}>
-        <div style={{padding:'14px 18px',display:'flex',alignItems:'center',gap:10,borderBottom:'1px solid var(--border-2)'}}>
-          <h3 style={{fontSize:14,fontWeight:600}}>{type==='income'?'Recebimentos':'Gastos'} · {periodLabel}</h3>
-          {type==='expense' && <select className="input" style={{width:'auto',padding:'5px 9px',fontSize:12,marginLeft:6}} value={gastoFreq} onChange={e=>setGastoFreq(e.target.value)}>
-            <option value="todos">Todos</option><option value="diario">Diários/avulsos</option><option value="mensal">Fixos mensais</option><option value="semestral">Fixos semestrais</option><option value="anual">Fixos anuais</option>
-          </select>}
-          <button className="btn btn-primary btn-sm" style={{marginLeft:'auto'}} onClick={()=>setModal({type})}><Icon name="plus" size={14}/>{type==='income'?'Recebimento':'Gasto'}</button>
+        <div style={{padding:'14px 18px',borderBottom:'1px solid var(--border-2)'}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+            <h3 style={{fontSize:14,fontWeight:600}}>{type==='income'?'Recebimentos':'Gastos'} · {periodLabel}</h3>
+            <button className="btn btn-primary btn-sm" style={{marginLeft:'auto'}} onClick={()=>setModal({type})}><Icon name="plus" size={14}/>{type==='income'?'Recebimento':'Gasto'}</button>
+          </div>
+          {type==='expense' && <div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:10}}>
+            {FREQ_CHIPS.map(([k,l])=>{ const on=gastoFreq===k; return (
+              <button key={k} className="chip" onClick={()=>setGastoFreq(k)} style={{cursor:'pointer',
+                borderColor:on?'var(--olive)':'var(--border)',background:on?'var(--olive-50)':'#fff',
+                color:on?'var(--olive-800)':'var(--ink-2)',fontWeight:on?600:500,padding:'5px 11px',fontSize:11.5}}>{l}</button>
+            );})}
+          </div>}
         </div>
         {l.length===0?<div className="empty"><Icon name="wallet"/><div>Nada lançado {periodLabel}.</div></div>:
-        <div style={{padding:'4px 18px 10px'}}>
-          {l.map(t=>{
-            const tg=tm[t.tag];
+        <div style={{padding:'2px 0 6px'}}>
+          {groups.map(g=>{
+            const isToday=g.date===U.TODAY;
             return (
-              <div key={t.id} onClick={()=>setModal({type,initial:t})} style={{display:'flex',alignItems:'center',gap:13,padding:'12px 2px',borderBottom:'1px solid var(--border-2)',cursor:'pointer'}}>
-                <span className="tag-dot" style={{width:11,height:11,background:tg?tg.color:'var(--faint)'}}></span>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:13.5,fontWeight:550}}>{t.desc}</div>
-                  <div style={{fontSize:11.5,color:'var(--faint)',marginTop:1,display:'flex',gap:8}}>
-                    <span>{U.fmtDate(t.date,'long')}</span>
-                    {tg && <span>· {tg.label}</span>}
-                    {t.freq && t.freq!=='diario' && <span className="chip" style={{fontSize:9.5,padding:'0 6px'}}>{t.freq}</span>}
-                    {t.card && <span className="chip" style={{fontSize:9.5,padding:'0 6px',color:'var(--c-vdec)'}}><Icon name="wallet" size={10}/>{t.recorrente?'assinatura':(t.parcelas>1?`${t.parcelaAtual||1}/${t.parcelas}`:'cartão')}</span>}
-                  </div>
+              <div key={g.date}>
+                <div style={{display:'flex',alignItems:'center',gap:8,padding:'10px 18px 6px',background:'var(--surface)'}}>
+                  <span style={{fontSize:11.5,fontWeight:650,color:isToday?'var(--olive)':'var(--muted)',textTransform:'uppercase',letterSpacing:'.02em'}}>
+                    {isToday?'Hoje':U.fmtDate(g.date,'long')}
+                  </span>
+                  <span style={{flex:1,height:1,background:'var(--border-2)'}}></span>
+                  <span className="tnum" style={{fontSize:11.5,fontWeight:650,color:type==='income'?'var(--ok)':'var(--ink-2)'}}>
+                    {type==='income'?'+':'−'} {U.brl(g.total)}
+                  </span>
                 </div>
-                <div className="tnum" style={{fontWeight:650,fontSize:14,color:type==='income'?'var(--ok)':'var(--ink)'}}>
-                  {type==='income'?'+':'−'} {U.brl(t.amount)}
-                </div>
+                {g.items.map(t=>{
+                  const tg=tm[t.tag];
+                  return (
+                    <div key={t.id} onClick={()=>setModal({type,initial:t})} style={{display:'flex',alignItems:'center',gap:13,padding:'11px 18px',cursor:'pointer'}}>
+                      <span className="tag-dot" style={{width:11,height:11,flex:'0 0 11px',background:tg?tg.color:'var(--faint)'}}></span>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:13.5,fontWeight:550,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{t.desc}</div>
+                        <div style={{fontSize:11.5,color:'var(--faint)',marginTop:1,display:'flex',gap:8,flexWrap:'wrap'}}>
+                          {tg && <span>{tg.label}</span>}
+                          {t.freq && t.freq!=='diario' && <span className="chip" style={{fontSize:9.5,padding:'0 6px'}}>{t.freq}</span>}
+                          {t.card && <span className="chip" style={{fontSize:9.5,padding:'0 6px',color:'var(--c-vdec)'}}><Icon name="wallet" size={10}/>{t.recorrente?'assinatura':(t.parcelas>1?`${t.parcelaAtual||1}/${t.parcelas}`:'cartão')}</span>}
+                        </div>
+                      </div>
+                      <div className="tnum" style={{fontWeight:650,fontSize:14,color:type==='income'?'var(--ok)':'var(--ink)',flex:'0 0 auto'}}>
+                        {type==='income'?'+':'−'} {U.brl(t.amount)}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             );
           })}

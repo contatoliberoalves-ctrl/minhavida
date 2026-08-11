@@ -185,6 +185,16 @@ function StoreProvider({children}){
   const [integrationStatus, setIntegrationStatus] = React.useState({});
   const lastSyncedRef = React.useRef(null); // JSON do que já sabemos estar salvo no servidor
 
+  // se o app ficar aberto de um dia pro outro (comum em PWA instalado),
+  // "hoje" muda sozinho no util.js — isso força toda a árvore a re-renderizar
+  // pra Início/Agenda refletirem o novo dia sem precisar recarregar a página.
+  const [, forceTodayTick] = React.useState(0);
+  React.useEffect(()=>{
+    const h = ()=> forceTodayTick(x=>x+1);
+    window.addEventListener('mv:today-changed', h);
+    return ()=> window.removeEventListener('mv:today-changed', h);
+  },[]);
+
   // sessão de autenticação
   React.useEffect(()=>{
     window.SB.auth.getSession().then(({data})=> setSession(data.session||null));

@@ -166,4 +166,35 @@ function Lightbox({images, index, onClose}){
   );
 }
 
-Object.assign(window, { Icon, ProjChip, PriorityBadge, Modal, KPI, Card, SectionH, Donut, Lightbox });
+// Botão flutuante de lançamento rápido (gasto/recebimento), visível em qualquer aba —
+// pra não precisar entrar em Finanças toda vez que quiser registrar algo que acabou de pagar/receber.
+function QuickAddFab(){
+  const [open,setOpen]=React.useState(false);
+  const [txType,setTxType]=React.useState(null); // 'income' | 'expense'
+  return (
+    <>
+      <button className="fab" onClick={()=>setOpen(true)} title="Lançar gasto ou recebimento" aria-label="Lançar gasto ou recebimento">
+        <Icon name="plus" size={24} strokeWidth={2.3}/>
+      </button>
+      {open && <div className="modal-scrim" onMouseDown={(e)=>{ if(e.target===e.currentTarget) setOpen(false); }}>
+        <div className="fab-sheet">
+          <div className="fab-sheet-h">
+            <h3>O que você quer lançar?</h3>
+            <button className="btn btn-icon btn-subtle" onClick={()=>setOpen(false)}><Icon name="x" size={16}/></button>
+          </div>
+          <button className="fab-opt" onClick={()=>{ setTxType('income'); setOpen(false); }}>
+            <span className="fab-opt-ic" style={{background:'color-mix(in srgb,var(--ok) 15%,#fff)',color:'var(--ok)'}}><Icon name="arrowD" size={19}/></span>
+            <span><b>Recebimento</b><div>Mensalidade, salário, Pix recebido...</div></span>
+          </button>
+          <button className="fab-opt" onClick={()=>{ setTxType('expense'); setOpen(false); }}>
+            <span className="fab-opt-ic" style={{background:'color-mix(in srgb,var(--danger) 13%,#fff)',color:'var(--danger)'}}><Icon name="arrowU" size={19}/></span>
+            <span><b>Gasto</b><div>Conta, compra, cartão de crédito...</div></span>
+          </button>
+        </div>
+      </div>}
+      {txType && <TxModal type={txType} onClose={()=>setTxType(null)}/>}
+    </>
+  );
+}
+
+Object.assign(window, { Icon, ProjChip, PriorityBadge, Modal, KPI, Card, SectionH, Donut, Lightbox, QuickAddFab });
