@@ -135,7 +135,8 @@ function App(){
   const nav = navFor(profile);
   const allowedKeys = new Set(nav.filter(i=>!i.section).map(i=>i.key));
   const [page,setPage]=React.useState(()=> (location.hash||'').replace('#','').split('?')[0] || 'inicio');
-  const go=(p)=>{ setPage(p); location.hash=p; const m=document.querySelector('.content'); if(m) m.scrollTop=0; window.scrollTo(0,0); };
+  const [navOpen,setNavOpen]=React.useState(false);
+  const go=(p)=>{ setPage(p); location.hash=p; setNavOpen(false); const m=document.querySelector('.content'); if(m) m.scrollTop=0; window.scrollTo(0,0); };
   React.useEffect(()=>{
     const h=()=>{ const p=(location.hash||'').replace('#','').split('?')[0]; if(p) setPage(p); };
     window.addEventListener('hashchange',h); return ()=>window.removeEventListener('hashchange',h);
@@ -155,10 +156,12 @@ function App(){
 
   return (
     <div className="app">
-      <aside className="sidebar">
+      {navOpen && <div className="mobile-backdrop" onClick={()=>setNavOpen(false)}></div>}
+      <aside className={'sidebar'+(navOpen?' mobile-open':'')}>
         <div className="brand">
           <div className="brand-mark">MV</div>
           <div><div className="brand-name">Minha Vida</div><div className="brand-sub">painel pessoal</div></div>
+          <button className="hamburger-btn" style={{marginLeft:'auto'}} onClick={()=>setNavOpen(false)} aria-label="Fechar menu"><Icon name="x" size={20}/></button>
         </div>
         <nav className="nav">
           {nav.map((item,i)=> item.section
@@ -180,6 +183,7 @@ function App(){
 
       <main className="main">
         <header className="topbar">
+          <button className="hamburger-btn" onClick={()=>setNavOpen(true)} aria-label="Abrir menu"><Icon name="list" size={20}/></button>
           <div>
             <div className="page-title">{meta.title}</div>
             <div className="page-sub">{meta.sub}</div>
