@@ -62,8 +62,14 @@ function EmailView(){
   const handleOpen=(e)=>{
     setSel(e);
     if(e.unread){
-      if(isLive(e.id)) setOverrides(o=>({...o,[e.id]:{...o[e.id], unread:false}}));
-      else markRead(e.id);
+      if(isLive(e.id)){
+        setOverrides(o=>({...o,[e.id]:{...o[e.id], unread:false}}));
+        // marca como lido no Gmail de verdade — sem isso, ao recarregar a caixa
+        // de entrada o e-mail simplesmente volta a aparecer como não lido.
+        const gmailId = e.id.replace(/^gm_/,'');
+        window.mvCallFunction('google-api', {api:'gmail_modify', id: gmailId, remove:['UNREAD']})
+          .catch(()=> setOverrides(o=>({...o,[e.id]:{...o[e.id], unread:true}})));
+      } else markRead(e.id);
     }
     if(isLive(e.id) && !bodyCache[e.id]){
       const gmailId = e.id.replace(/^gm_/,'');
