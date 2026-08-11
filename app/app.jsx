@@ -82,12 +82,13 @@ function LoginScreen(){
 
         <div style={{display:'flex',flexDirection:'column',gap:10,textAlign:'left'}}>
           <label style={{fontSize:11.5,fontWeight:600,color:'var(--faint)'}}>E-mail
-            <input className="input" type="email" required autoFocus value={email} onChange={e=>setEmail(e.target.value)} style={{marginTop:4}}/>
+            <input className="input" type="email" name="email" id="mv-email" autoComplete="email" required autoFocus value={email} onChange={e=>setEmail(e.target.value)} style={{marginTop:4}}/>
           </label>
           <label style={{fontSize:11.5,fontWeight:600,color:'var(--faint)'}}>Senha
-            <input className="input" type="password" required minLength={6} value={password} onChange={e=>setPassword(e.target.value)} style={{marginTop:4}}/>
+            <input className="input" type="password" name="password" id="mv-password" autoComplete={mode==='signin'?'current-password':'new-password'} required minLength={6} value={password} onChange={e=>setPassword(e.target.value)} style={{marginTop:4}}/>
           </label>
         </div>
+        <p style={{fontSize:11,color:'var(--faint)',marginTop:10}}>Dica: quando o navegador perguntar, escolha <b>"Salvar senha"</b> — assim ele preenche sozinho da próxima vez. Depois de entrar, você continua conectado neste aparelho até clicar em "Sair".</p>
 
         {authError && <div className="notice" style={{marginTop:14,textAlign:'left'}}><Icon name="alert"/><div>{authError}</div></div>}
         {signedUpMsg && <div className="notice" style={{marginTop:14,textAlign:'left'}}><Icon name="alert"/><div>{signedUpMsg}</div></div>}

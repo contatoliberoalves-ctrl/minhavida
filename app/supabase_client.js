@@ -3,7 +3,12 @@
   var SUPABASE_URL = 'https://qijziqjpvtjwarkodzxp.supabase.co';
   var SUPABASE_KEY = 'sb_publishable_l1_inEQengxOekYR4UZx7A_Ljxb3yGg';
 
-  window.SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // persistSession/autoRefreshToken já são o padrão do Supabase, mas deixamos explícito:
+  // a sessão fica salva no localStorage do navegador e é renovada sozinha,
+  // então o login permanece válido entre visitas até a pessoa clicar em "Sair".
+  window.SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+  });
   window.MV_FUNCTIONS_URL = SUPABASE_URL + '/functions/v1';
 
   window.mvCallFunction = async function(name, body){
