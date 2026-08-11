@@ -2,12 +2,20 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>Minha Vida — Painel</title>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#6e8b3d"/>
+<link rel="icon" href="app/icons/icon-192.png"/>
+<link rel="apple-touch-icon" href="app/icons/icon-192.png"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Minha Vida"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-<link rel="stylesheet" href="app/styles.css?v=22"/>
+<link rel="stylesheet" href="app/styles.css?v=23"/>
 </head>
 <body>
 <div id="root"></div>
@@ -20,31 +28,36 @@
 <script src="app/supabase_client.js?v=1"></script>
 
 <!-- plain JS data + utils -->
-<script src="app/seed.js?v=22"></script>
-<script src="app/util.js?v=22"></script>
-<script src="app/launch_playbook.js?v=22"></script>
+<script src="app/seed.js?v=23"></script>
+<script src="app/util.js?v=23"></script>
+<script src="app/launch_playbook.js?v=23"></script>
 
 <!-- JSX (transpiled) -->
-<script type="text/babel" src="app/store.jsx?v=22"></script>
-<script type="text/babel" src="app/ui.jsx?v=22"></script>
-<script type="text/babel" src="app/forms.jsx?v=22"></script>
-<script type="text/babel" src="app/view_dashboard.jsx?v=22"></script>
-<script type="text/babel" src="app/view_agenda.jsx?v=22"></script>
-<script type="text/babel" src="app/view_projetos.jsx?v=22"></script>
-<script type="text/babel" src="app/view_alunos.jsx?v=22"></script>
-<script type="text/babel" src="app/view_aperfeicoamento.jsx?v=22"></script>
-<script type="text/babel" src="app/view_lancamentos.jsx?v=22"></script>
-<script type="text/babel" src="app/view_playbook.jsx?v=22"></script>
-<script type="text/babel" src="app/view_conteudo.jsx?v=22"></script>
-<script type="text/babel" src="app/view_contas.jsx?v=22"></script>
-<script type="text/babel" src="app/view_metas.jsx?v=22"></script>
-<script type="text/babel" src="app/view_cartorio.jsx?v=22"></script>
-<script type="text/babel" src="app/view_financas.jsx?v=22"></script>
-<script type="text/babel" src="app/view_cartoes.jsx?v=22"></script>
-<script type="text/babel" src="app/view_relatorios.jsx?v=22"></script>
-<script type="text/babel" src="app/view_email.jsx?v=22"></script>
-<script type="text/babel" src="app/view_busca.jsx?v=22"></script>
-<script type="text/babel" src="app/view_integracoes.jsx?v=22"></script>
-<script type="text/babel" src="app/app.jsx?v=22"></script>
+<script type="text/babel" src="app/store.jsx?v=23"></script>
+<script type="text/babel" src="app/ui.jsx?v=23"></script>
+<script type="text/babel" src="app/forms.jsx?v=23"></script>
+<script type="text/babel" src="app/view_dashboard.jsx?v=23"></script>
+<script type="text/babel" src="app/view_agenda.jsx?v=23"></script>
+<script type="text/babel" src="app/view_projetos.jsx?v=23"></script>
+<script type="text/babel" src="app/view_alunos.jsx?v=23"></script>
+<script type="text/babel" src="app/view_aperfeicoamento.jsx?v=23"></script>
+<script type="text/babel" src="app/view_lancamentos.jsx?v=23"></script>
+<script type="text/babel" src="app/view_playbook.jsx?v=23"></script>
+<script type="text/babel" src="app/view_conteudo.jsx?v=23"></script>
+<script type="text/babel" src="app/view_contas.jsx?v=23"></script>
+<script type="text/babel" src="app/view_metas.jsx?v=23"></script>
+<script type="text/babel" src="app/view_cartorio.jsx?v=23"></script>
+<script type="text/babel" src="app/view_financas.jsx?v=23"></script>
+<script type="text/babel" src="app/view_cartoes.jsx?v=23"></script>
+<script type="text/babel" src="app/view_relatorios.jsx?v=23"></script>
+<script type="text/babel" src="app/view_email.jsx?v=23"></script>
+<script type="text/babel" src="app/view_busca.jsx?v=23"></script>
+<script type="text/babel" src="app/view_integracoes.jsx?v=23"></script>
+<script type="text/babel" src="app/app.jsx?v=23"></script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('app/sw.js').catch(()=>{}); });
+}
+</script>
 </body>
 </html>
