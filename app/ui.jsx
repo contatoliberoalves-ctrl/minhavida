@@ -87,6 +87,19 @@ function Modal({title, icon, onClose, children, footer, wide}){
     const h=(e)=>{ if(e.key==='Escape') onClose(); };
     window.addEventListener('keydown',h); return ()=>window.removeEventListener('keydown',h);
   },[]);
+  // no celular, o teclado (ou a roda de seleção nativa de data/hora do iOS) cobre
+  // o campo que acabou de ganhar foco — rola até ele assim que o teclado termina
+  // de abrir, pra sempre ficar visível.
+  React.useEffect(()=>{
+    const onFocusIn=(e)=>{
+      const t=e.target;
+      if(!t || !/INPUT|TEXTAREA|SELECT/.test(t.tagName)) return;
+      if(!t.closest('.modal')) return;
+      setTimeout(()=>{ t.scrollIntoView({block:'center', behavior:'smooth'}); }, 320);
+    };
+    document.addEventListener('focusin', onFocusIn);
+    return ()=>document.removeEventListener('focusin', onFocusIn);
+  },[]);
   return (
     <div className="modal-scrim" onMouseDown={(e)=>{ if(e.target===e.currentTarget) onClose(); }}>
       <div className={'modal'+(wide?' wide':'')}>
