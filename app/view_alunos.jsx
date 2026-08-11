@@ -13,8 +13,9 @@ function StudentModal({initial,onClose}){
   const { addStudent, updateStudent, removeStudent } = useStore();
   const isEdit=!!(initial&&initial.id);
   const courses=window.SEED.PROJECTS.filter(p=>['mentorias','vde1','vde2','vde_concursos','constitucional'].includes(p.key));
-  const [f,setF]=React.useState(()=>({name:'',course:'mentorias',status:'ativo',value:'',paid:false,contact:'',notes:'',color:'var(--c-mentorias)',...(initial||{})}));
+  const [f,setF]=React.useState(()=>({name:'',course:'mentorias',status:'ativo',valueType:'mensal',value:'',paid:false,contact:'',notes:'',color:'var(--c-mentorias)',...(initial||{})}));
   const set=(k,v)=>setF(s=>({...s,[k]:v}));
+  const isTotal=f.valueType==='total';
   const save=()=>{ if(!f.name.trim())return; const payload={...f,value:parseFloat(String(f.value).replace(',','.'))||0}; if(isEdit)updateStudent(initial.id,payload); else addStudent(payload); onClose(); };
   return (
     <Modal title={isEdit?'Editar aluno':'Novo aluno'} icon="users" onClose={onClose}
@@ -31,12 +32,18 @@ function StudentModal({initial,onClose}){
           <div className="field"><label>Status</label>
             <select className="input" value={f.status} onChange={e=>set('status',e.target.value)}>{Object.keys(STU_STATUS).map(k=><option key={k} value={k}>{STU_STATUS[k].label}</option>)}</select></div>
         </div>
+        <div className="field"><label>Cobrança</label>
+          <div className="seg" style={{width:'100%'}}>
+            <button className={!isTotal?'on':''} style={{flex:1}} onClick={()=>set('valueType','mensal')}>Valor mensal</button>
+            <button className={isTotal?'on':''} style={{flex:1}} onClick={()=>set('valueType','total')}>Valor total (à vista)</button>
+          </div>
+        </div>
         <div className="grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
-          <div className="field"><label>Valor mensal (R$)</label><input className="input tnum" value={f.value} onChange={e=>set('value',e.target.value)} placeholder="0,00"/></div>
+          <div className="field"><label>{isTotal?'Valor total (R$)':'Valor mensal (R$)'}</label><input className="input tnum" value={f.value} onChange={e=>set('value',e.target.value)} placeholder="0,00"/></div>
           <div className="field"><label>Contato <span style={{color:'var(--faint)',fontWeight:400}}>(opcional)</span></label><input className="input" value={f.contact} onChange={e=>set('contact',e.target.value)} placeholder="WhatsApp, e-mail..."/></div>
         </div>
         <div className="field"><label>Anotações</label><textarea className="input" value={f.notes} onChange={e=>set('notes',e.target.value)} placeholder="Pontos de atenção, plano de estudo, combinados..."/></div>
-        <Toggle on={f.paid} onClick={()=>set('paid',!f.paid)} icon="check" label="Mensalidade em dia" color="var(--ok)"/>
+        <Toggle on={f.paid} onClick={()=>set('paid',!f.paid)} icon="check" label={isTotal?'Pago':'Mensalidade em dia'} color="var(--ok)"/>
       </div>
     </Modal>
   );
@@ -55,7 +62,7 @@ function AlunosView(){
   if(status!=='todos') list=list.filter(s=>s.status===status);
 
   const ativos=state.students.filter(s=>s.status==='ativo');
-  const receita=ativos.reduce((a,s)=>a+(s.value||0),0);
+  const receita=ativos.filter(s=>s.valueType!=='total').reduce((a,s)=>a+(s.value||0),0);
   const pendentes=ativos.filter(s=>!s.paid);
 
   if(open){
@@ -107,9 +114,9 @@ function AlunosView(){
               </div>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:12,paddingTop:11,borderTop:'1px solid var(--border-2)'}}>
                 <div>
-                  <div className="tnum" style={{fontWeight:650,fontSize:14}}>{st.value?U.brl(st.value):'—'}<span style={{fontSize:10,color:'var(--faint)',fontWeight:400}}>/mês</span></div>
+                  <div className="tnum" style={{fontWeight:650,fontSize:14}}>{st.value?U.brl(st.value):'—'}<span style={{fontSize:10,color:'var(--faint)',fontWeight:400}}>{st.valueType==='total'?' total':'/mês'}</span></div>
                   <div onClick={e=>{e.stopPropagation();toggleStudentPaid(st.id);}} style={{fontSize:10.5,fontWeight:600,marginTop:2,color:st.paid?'var(--ok)':'var(--danger)',cursor:'pointer'}}>
-                    <Icon name={st.paid?'check':'alert'} size={11} style={{verticalAlign:'-1px'}}/> {st.paid?'em dia':'pendente'}</div>
+                    <Icon name={st.paid?'check':'alert'} size={11} style={{verticalAlign:'-1px'}}/> {st.paid?(st.valueType==='total'?'pago':'em dia'):'pendente'}</div>
                 </div>
                 <div style={{textAlign:'right'}}>
                   <div style={{fontSize:10.5,color:'var(--faint)'}}>{sess.length} sessões</div>
@@ -155,9 +162,9 @@ function StudentDetail({student, onBack}){
           </div>
         </div>
         <div style={{textAlign:'right'}}>
-          <div className="tnum" style={{fontWeight:700,fontSize:20}}>{st.value?U.brl(st.value):'—'}<span style={{fontSize:11,color:'var(--faint)',fontWeight:400}}>/mês</span></div>
+          <div className="tnum" style={{fontWeight:700,fontSize:20}}>{st.value?U.brl(st.value):'—'}<span style={{fontSize:11,color:'var(--faint)',fontWeight:400}}>{st.valueType==='total'?' total':'/mês'}</span></div>
           <button onClick={()=>toggleStudentPaid(st.id)} className="chip" style={{cursor:'pointer',marginTop:6,fontSize:11,color:st.paid?'var(--ok)':'var(--danger)',borderColor:st.paid?'color-mix(in srgb,var(--ok) 30%,#fff)':'color-mix(in srgb,var(--danger) 30%,#fff)'}}>
-            <Icon name={st.paid?'check':'alert'} size={12}/>{st.paid?'Mensalidade em dia':'Pagamento pendente'}</button>
+            <Icon name={st.paid?'check':'alert'} size={12}/>{st.paid?(st.valueType==='total'?'Pago':'Mensalidade em dia'):'Pagamento pendente'}</button>
         </div>
         <button className="btn btn-ghost" onClick={()=>setEdit(true)}><Icon name="edit" size={15}/>Editar</button>
       </div>

@@ -58,6 +58,7 @@ function migrate(s){
   if(!s.cards) s.cards = DEFAULT_CARDS.map(c=>({...c}));
   if(!s.customSections) s.customSections = {};
   if(!s.students) s.students = DEFAULT_STUDENTS.map(x=>({...x}));
+  s.students = s.students.map(st=>({valueType:'mensal', ...st}));
   if(!s.tithes) s.tithes = [];
   if(!s.launches) s.launches = DEFAULT_LAUNCHES.map(x=>({...x}));
   if(!s.content) s.content = DEFAULT_CONTENT.map(x=>({...x}));
