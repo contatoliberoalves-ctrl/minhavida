@@ -25,13 +25,13 @@ function StudentModal({initial,onClose}){
       </>}>
       <div className="grid" style={{gap:15}}>
         <div className="field"><label>Nome</label><input className="input" autoFocus value={f.name} onChange={e=>set('name',e.target.value)} placeholder="Ex.: Gabriela"/></div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
+        <div className="grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
           <div className="field"><label>Curso / mentoria</label>
             <select className="input" value={f.course} onChange={e=>set('course',e.target.value)}>{courses.map(c=><option key={c.key} value={c.key}>{c.label}</option>)}</select></div>
           <div className="field"><label>Status</label>
             <select className="input" value={f.status} onChange={e=>set('status',e.target.value)}>{Object.keys(STU_STATUS).map(k=><option key={k} value={k}>{STU_STATUS[k].label}</option>)}</select></div>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
+        <div className="grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
           <div className="field"><label>Valor mensal (R$)</label><input className="input tnum" value={f.value} onChange={e=>set('value',e.target.value)} placeholder="0,00"/></div>
           <div className="field"><label>Contato <span style={{color:'var(--faint)',fontWeight:400}}>(opcional)</span></label><input className="input" value={f.contact} onChange={e=>set('contact',e.target.value)} placeholder="WhatsApp, e-mail..."/></div>
         </div>

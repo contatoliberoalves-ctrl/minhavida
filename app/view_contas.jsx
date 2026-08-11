@@ -21,7 +21,7 @@ function BillModal({initial, defType, onClose}){
             <button className={f.type==='receber'?'on':''} style={{flex:1}} onClick={()=>set('type','receber')}>A receber</button>
           </div></div>
         <div className="field"><label>Descrição</label><input className="input" autoFocus value={f.desc} onChange={e=>set('desc',e.target.value)} placeholder={f.type==='receber'?'Ex.: Mensalidade — aluno':'Ex.: Anuidade OAB'}/></div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
+        <div className="grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
           <div className="field"><label>Valor (R$)</label><input className="input tnum" value={f.amount} onChange={e=>set('amount',e.target.value)} placeholder="0,00"/></div>
           <div className="field"><label>Vencimento</label><input className="input" type="date" value={f.due} onChange={e=>set('due',e.target.value)}/></div>
         </div>

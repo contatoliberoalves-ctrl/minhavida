@@ -23,16 +23,16 @@ function LaunchModal({initial,onClose}){
       </>}>
       <div className="grid" style={{gap:15}}>
         <div className="field"><label>Nome do lançamento</label><input className="input" autoFocus value={f.name} onChange={e=>set('name',e.target.value)} placeholder="Ex.: Pratflix — Lançamento"/></div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
+        <div className="grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
           <div className="field"><label>Projeto</label><select className="input" value={f.project} onChange={e=>set('project',e.target.value)}>{projects.map(p=><option key={p.key} value={p.key}>{p.label}</option>)}</select></div>
           <div className="field"><label>Fase</label><select className="input" value={f.phase} onChange={e=>set('phase',e.target.value)}>{Object.keys(LAUNCH_PHASES).map(k=><option key={k} value={k}>{LAUNCH_PHASES[k].label}</option>)}</select></div>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:11}}>
+        <div className="grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:11}}>
           <div className="field"><label>Aquecimento</label><input className="input" type="date" value={f.openDate} onChange={e=>set('openDate',e.target.value)}/></div>
           <div className="field"><label>Abertura</label><input className="input" type="date" value={f.launchDate} onChange={e=>set('launchDate',e.target.value)}/></div>
           <div className="field"><label>Fechamento</label><input className="input" type="date" value={f.closeDate} onChange={e=>set('closeDate',e.target.value)}/></div>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
+        <div className="grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
           <div className="field"><label>Meta de receita (R$)</label><input className="input tnum" value={f.goalRevenue} onChange={e=>set('goalRevenue',e.target.value)} placeholder="0,00"/></div>
           <div className="field"><label>Meta de vendas</label><input className="input tnum" value={f.goalSales} onChange={e=>set('goalSales',e.target.value)} placeholder="0"/></div>
         </div>

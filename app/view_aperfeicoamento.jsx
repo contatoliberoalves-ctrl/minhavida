@@ -68,7 +68,7 @@ function ReadingModal({initial,onClose}){
       </>}>
       <div className="grid" style={{gap:15}}>
         <div className="field"><label>Título</label><input className="input" autoFocus value={f.title} onChange={e=>set('title',e.target.value)} placeholder="Ex.: Essencialismo"/></div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
+        <div className="grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
           <div className="field"><label>Autor</label><input className="input" value={f.author} onChange={e=>set('author',e.target.value)} placeholder="opcional"/></div>
           <div className="field"><label>Categoria</label><select className="input" value={f.category} onChange={e=>set('category',e.target.value)}>{['Leitura','Devocional','Negócios','Estudo','Pessoal'].map(c=><option key={c} value={c}>{c}</option>)}</select></div>
         </div>
@@ -101,7 +101,7 @@ function DiversaoModal({initial,onClose}){
       </>}>
       <div className="grid" style={{gap:15}}>
         <div className="field"><label>O que é?</label><input className="input" autoFocus value={f.title} onChange={e=>set('title',e.target.value)} placeholder="Ex.: Assistir Duna 2, Praia de Porto de Galinhas..."/></div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
+        <div className="grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
           <div className="field"><label>Categoria</label><select className="input" value={f.category} onChange={e=>set('category',e.target.value)}>{Object.keys(DIVERSAO_CATS).map(c=><option key={c} value={c}>{c}</option>)}</select></div>
           <div className="field"><label>Status</label><select className="input" value={f.status} onChange={e=>set('status',e.target.value)}><option value="quero">Quero fazer</option><option value="feito">Já fiz</option></select></div>
         </div>

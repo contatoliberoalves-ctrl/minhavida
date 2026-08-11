@@ -112,13 +112,13 @@ function CommitmentModal({initial, onClose}){
           <label>Título</label>
           <input className="input" autoFocus value={f.title} onChange={e=>set('title',e.target.value)} placeholder="Ex.: Mentoria — Gabriela"/>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
+        <div className="grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
           <div className="field"><label>Data</label>
             <input className="input" type="date" value={f.date} onChange={e=>set('date',e.target.value)}/></div>
           <div className="field"><label>Horário <span style={{color:'var(--faint)',fontWeight:400}}>(opcional)</span></label>
             <input className="input" type="time" value={f.time} onChange={e=>set('time',e.target.value)}/></div>
         </div>
-        <div style={{display:'grid',gridTemplateColumns: sections.length?'1fr 1fr':'1fr',gap:13}}>
+        <div className="grid" style={{display:'grid',gridTemplateColumns: sections.length?'1fr 1fr':'1fr',gap:13}}>
           <div className="field">
             <label>Projeto / área</label>
             <select className="input" value={f.project} onChange={e=>{set('project',e.target.value);set('section','');}}>
@@ -259,7 +259,7 @@ function TxModal({type, initial, onClose}){
       <div className="grid" style={{gap:15}}>
         <div className="field"><label>Descrição</label>
           <input className="input" autoFocus value={f.desc} onChange={e=>set('desc',e.target.value)} placeholder={isInc?'Ex.: Mensalidade VDE':'Ex.: Mercado, Netflix, Notebook...'}/></div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
+        <div className="grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
           <div className="field"><label>{onCard&&!f.recorrente?'Valor da parcela (R$)':'Valor (R$)'}</label>
             <input className="input tnum" inputMode="decimal" value={f.amount} onChange={e=>set('amount',e.target.value)} placeholder="0,00"/></div>
           <div className="field"><label>Data</label>
@@ -300,7 +300,7 @@ function TxModal({type, initial, onClose}){
               </div>
             </div>
             {f.recorrente ? <div style={{fontSize:11.5,color:'var(--muted)',display:'flex',gap:7,alignItems:'center'}}><Icon name="clock" size={14}/>Cobrado todo mês até você cancelar (ex.: Netflix, Spotify).</div>
-            : <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
+            : <div className="grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
                 <div className="field" style={{margin:0}}><label>Nº de parcelas</label>
                   <input className="input tnum" type="number" min="1" max="48" value={f.parcelas} onChange={e=>set('parcelas',Math.max(1,parseInt(e.target.value)||1))}/></div>
                 <div className="field" style={{margin:0}}><label>Parcela atual</label>

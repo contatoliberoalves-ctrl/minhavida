@@ -74,7 +74,7 @@ function RelatoriosTab(){
               </div>
             ))}
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}}>
+          <div className="grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}}>
             <TagTable title="Recebimentos por categoria" seg={incSeg} total={totalIn} sign="+ "/>
             <TagTable title="Gastos por categoria" seg={expSeg} total={totalOut} sign="− "/>
           </div>

@@ -28,11 +28,11 @@ function ContentModal({initial,onClose}){
       </>}>
       <div className="grid" style={{gap:15}}>
         <div className="field"><label>Título / pauta</label><input className="input" autoFocus value={f.title} onChange={e=>set('title',e.target.value)} placeholder="Ex.: Reels — 3 erros na 2ª fase"/></div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
+        <div className="grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
           <div className="field"><label>Canal</label><select className="input" value={f.channel} onChange={e=>set('channel',e.target.value)}>{Object.keys(CHANNELS).map(k=><option key={k} value={k}>{CHANNELS[k].label}</option>)}</select></div>
           <div className="field"><label>Etapa</label><select className="input" value={f.status} onChange={e=>set('status',e.target.value)}>{CONTENT_STAGES.map(s=><option key={s.key} value={s.key}>{s.label}</option>)}</select></div>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
+        <div className="grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
           <div className="field"><label>Data prevista</label><input className="input" type="date" value={f.date} onChange={e=>set('date',e.target.value)}/></div>
           <div className="field"><label>Responsável</label>
             <select className="input" value={f.assignee} onChange={e=>set('assignee',e.target.value)}>

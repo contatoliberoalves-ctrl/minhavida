@@ -166,7 +166,7 @@ textarea.input{resize:vertical;min-height:74px;line-height:1.5;}
 .modal-h{display:flex;align-items:center;gap:12px;padding:20px 22px;border-bottom:1px solid var(--border-2);}
 .modal-h h3{font-size:16px;font-weight:650;letter-spacing:-.01em;}
 .modal-b{padding:22px;}
-.modal-f{padding:16px 22px;border-top:1px solid var(--border-2);display:flex;gap:10px;justify-content:flex-end;background:var(--surface-2);border-radius:0 0 var(--r-xl) var(--r-xl);}
+.modal-f{padding:16px 22px;border-top:1px solid var(--border-2);display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;background:var(--surface-2);border-radius:0 0 var(--r-xl) var(--r-xl);}
 @keyframes pop{from{transform:translateY(9px) scale(.985);}}
 
 /* ===== Stat / KPI ===== */
@@ -228,6 +228,13 @@ a.link:hover{text-decoration:underline;}
   .topbar-search{width:auto;}
   /* colunas fixas viram uma só coluna em telas de celular */
   .grid{grid-template-columns:1fr!important;}
+  /* modais ocupam a tela toda com folga, sem sobra de espaço em branco */
+  .modal-scrim{padding:16px 10px;align-items:center;}
+  .modal-h{padding:16px 18px;}
+  .modal-b{padding:18px;}
+  .modal-f{padding:14px 18px;}
+  /* caixa de entrada: lista não domina a tela toda no celular */
+  .email-list-scroll{max-height:40vh!important;}
 }
 
 /* ===== Corpo de e-mail (HTML real do Gmail) ===== */

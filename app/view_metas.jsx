@@ -21,7 +21,7 @@ function GoalModal({initial,onClose}){
       </>}>
       <div className="grid" style={{gap:15}}>
         <div className="field"><label>Nome da meta</label><input className="input" autoFocus value={f.label} onChange={e=>set('label',e.target.value)} placeholder="Ex.: Receita do mês"/></div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
+        <div className="grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:13}}>
           <div className="field"><label>Tipo</label><select className="input" value={f.type} onChange={e=>set('type',e.target.value)}>{Object.keys(GOAL_TYPES).map(k=><option key={k} value={k}>{GOAL_TYPES[k].label}</option>)}</select></div>
           <div className="field"><label>Meta (alvo)</label><input className="input tnum" value={f.target} onChange={e=>set('target',e.target.value)} placeholder="0"/></div>
         </div>

@@ -103,7 +103,7 @@ function EmailView(){
 
       <div className="grid" style={{gridTemplateColumns:'minmax(280px,360px) 1fr',gap:16,alignItems:'start'}}>
         <Card pad={false}>
-          <div style={{padding:'13px 16px',borderBottom:'1px solid var(--border-2)',display:'flex',alignItems:'center',gap:8}}>
+          <div style={{padding:'13px 16px',borderBottom:'1px solid var(--border-2)',display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
             <Icon name="mail" size={17} style={{color:'var(--olive)'}}/>
             <b style={{fontSize:14}}>Caixa de entrada</b>
             {unreadCount>0 && <span className="nav-badge" style={{position:'static'}}>{unreadCount}</span>}
@@ -112,7 +112,7 @@ function EmailView(){
                 <button key={k} className={filter===k?'on':''} style={{padding:'4px 9px',fontSize:11}} onClick={()=>setFilter(k)}>{l}</button>)}
             </div>
           </div>
-          <div style={{maxHeight:560,overflowY:'auto'}}>
+          <div className="email-list-scroll" style={{maxHeight:560,overflowY:'auto'}}>
             {emails.length===0 && !loadingLive && <div className="empty"><Icon name="mail"/><div>Nenhum e-mail por aqui.</div></div>}
             {emails.map(e=>(
               <div key={e.id} onClick={()=>handleOpen(e)} style={{
@@ -146,7 +146,7 @@ function EmailView(){
               <h2 style={{fontSize:18,fontWeight:650,letterSpacing:'-.01em',marginBottom:10}}>{sel.subject}</h2>
               <div style={{display:'flex',alignItems:'center',gap:11}}>
                 <span className="avatar">{sel.from[0]}</span>
-                <div style={{flex:1}}><div style={{fontWeight:600,fontSize:13.5}}>{sel.from}</div><div style={{fontSize:11.5,color:'var(--faint)'}}>{sel.email} · {sel.time}</div></div>
+                <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:13.5,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{sel.from}</div><div style={{fontSize:11.5,color:'var(--faint)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{sel.email} · {sel.time}</div></div>
                 <button className="btn btn-icon btn-ghost" onClick={()=>handleToggleStar(sel.id)} title="Favoritar"><Icon name="star" size={16} style={{fill:sel.star?'var(--warn)':'none',color:sel.star?'var(--warn)':'var(--muted)'}}/></button>
               </div>
             </div>
