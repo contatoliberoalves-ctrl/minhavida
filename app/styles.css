@@ -236,6 +236,9 @@ a.link:hover{text-decoration:underline;}
   .modal-h{padding:16px 18px;}
   .modal-b{padding:18px;}
   .modal-f{padding:14px 18px;}
+  /* campo com fonte <16px faz o celular dar zoom sozinho ao focar (ex.: o campo
+     que recebe autoFocus assim que um modal abre) — 16px evita esse "zoom bug". */
+  .input,textarea.input,select.input{font-size:16px;}
   /* caixa de entrada: lista não domina a tela toda no celular */
   .email-list-scroll{max-height:40vh!important;}
 }
