@@ -230,7 +230,7 @@ function TxModal({type, initial, onClose}){
   const cards = state.cards||[];
   const [f,setF] = React.useState(()=>({
     type, date:window.U.TODAY, desc:'', amount:'', tag:tags[0]?.id||'',
-    freq: type==='expense'?'mensal':undefined,
+    freq: type==='expense'?'diario':undefined,
     card:'', parcelas:1, parcelaAtual:1, recorrente:false,
     ...(initial||{})
   }));

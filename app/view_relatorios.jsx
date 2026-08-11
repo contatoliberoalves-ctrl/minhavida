@@ -4,6 +4,7 @@ function RelatoriosTab(){
   const U=window.U;
   const [tipo,setTipo]=React.useState('financeiro'); // financeiro | compromissos | geral
   const [period,setPeriod]=React.useState('mes');
+  const [chartView,setChartView]=React.useState('categoria'); // categoria (específico) | evolucao (geral)
 
   const inPeriod=(date)=>{
     const d=U.parseDate(date); const t=U.parseDate(U.TODAY);
@@ -23,8 +24,44 @@ function RelatoriosTab(){
   const coms=state.commitments.filter(c=>inPeriod(c.date)).sort((a,b)=>(a.date+'T'+(a.time||'00')).localeCompare(b.date+'T'+(b.time||'00')));
   const byProj={}; coms.forEach(c=>byProj[c.project]=(byProj[c.project]||0)+1);
 
+  // evolução mensal (visão geral) — últimos 6 meses, independente do filtro de período acima
+  const monthlyEvo = (()=>{
+    const t=U.parseDate(U.TODAY); const months=[];
+    for(let i=5;i>=0;i--) months.push(new Date(t.getFullYear(), t.getMonth()-i, 1));
+    return months.map(d=>{
+      const y=d.getFullYear(), m=d.getMonth();
+      const inMonth=(x)=>{ const dd=U.parseDate(x.date); return dd.getFullYear()===y && dd.getMonth()===m; };
+      const income=state.tx.filter(x=>x.type==='income'&&inMonth(x)).reduce((a,x)=>a+x.amount,0);
+      const expense=state.tx.filter(x=>x.type==='expense'&&inMonth(x)).reduce((a,x)=>a+x.amount,0);
+      return {label:U.MONTHS_SHORT[m], income, expense};
+    });
+  })();
+
   const Th=({children,r})=> <th style={{textAlign:r?'right':'left',padding:'7px 10px',fontSize:11,fontWeight:600,color:'var(--muted)',borderBottom:'1.5px solid var(--border)',textTransform:'uppercase',letterSpacing:'.03em'}}>{children}</th>;
   const Td=({children,r,b})=> <td style={{textAlign:r?'right':'left',padding:'8px 10px',fontSize:12.5,borderBottom:'1px solid var(--border-2)',fontWeight:b?650:400}} className={r?'tnum':''}>{children}</td>;
+
+  const MonthlyBarChart=({data})=>{
+    const max=Math.max(1,...data.flatMap(d=>[d.income,d.expense]));
+    return (
+      <div style={{overflowX:'auto'}}>
+        <div style={{display:'flex',gap:16,alignItems:'flex-end',minWidth:data.length*64,padding:'0 4px'}}>
+          {data.map((d,i)=>(
+            <div key={i} style={{flex:'0 0 auto',width:56,display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
+              <div style={{display:'flex',gap:4,alignItems:'flex-end',height:140}}>
+                <div title={'Recebido: '+U.brl(d.income)} style={{width:18,borderRadius:'4px 4px 0 0',background:'var(--ok)',height:Math.max(2,Math.round(d.income/max*140))}}></div>
+                <div title={'Gasto: '+U.brl(d.expense)} style={{width:18,borderRadius:'4px 4px 0 0',background:'var(--danger)',height:Math.max(2,Math.round(d.expense/max*140))}}></div>
+              </div>
+              <div style={{fontSize:11,color:'var(--muted)',fontWeight:600,textTransform:'capitalize'}}>{d.label}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{display:'flex',gap:16,justifyContent:'center',marginTop:10,fontSize:11.5,color:'var(--muted)'}}>
+          <span style={{display:'inline-flex',alignItems:'center',gap:5}}><span style={{width:9,height:9,borderRadius:3,background:'var(--ok)'}}></span>Recebido</span>
+          <span style={{display:'inline-flex',alignItems:'center',gap:5}}><span style={{width:9,height:9,borderRadius:3,background:'var(--danger)'}}></span>Gasto</span>
+        </div>
+      </div>
+    );
+  };
 
   const TagTable=({title,seg,total,sign})=>(
     <div style={{marginBottom:18,breakInside:'avoid'}}>
@@ -74,6 +111,28 @@ function RelatoriosTab(){
               </div>
             ))}
           </div>
+          {/* seletor de gráfico: específico (por categoria) ou geral (evolução no tempo) */}
+          <div className="no-print" style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,flexWrap:'wrap'}}>
+            <span style={{fontSize:11.5,fontWeight:600,color:'var(--muted)'}}>Gráfico:</span>
+            <div className="seg">
+              <button className={chartView==='categoria'?'on':''} onClick={()=>setChartView('categoria')}>Por categoria (específico)</button>
+              <button className={chartView==='evolucao'?'on':''} onClick={()=>setChartView('evolucao')}>Evolução mensal (geral)</button>
+            </div>
+          </div>
+          {chartView==='categoria' ? (
+            <div className="grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24,marginBottom:22}}>
+              <div><h4 style={{fontSize:13,fontWeight:650,marginBottom:8}}>Recebimentos por categoria</h4>
+                {incSeg.length===0?<div style={{fontSize:12,color:'var(--faint)'}}>Sem dados no período.</div>:<BreakdownChart segments={incSeg} total={totalIn}/>}</div>
+              <div><h4 style={{fontSize:13,fontWeight:650,marginBottom:8}}>Gastos por categoria</h4>
+                {expSeg.length===0?<div style={{fontSize:12,color:'var(--faint)'}}>Sem dados no período.</div>:<BreakdownChart segments={expSeg} total={totalOut}/>}</div>
+            </div>
+          ) : (
+            <div style={{marginBottom:22}}>
+              <h4 style={{fontSize:13,fontWeight:650,marginBottom:8}}>Recebido × Gasto — últimos 6 meses</h4>
+              <MonthlyBarChart data={monthlyEvo}/>
+            </div>
+          )}
+
           <div className="grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}}>
             <TagTable title="Recebimentos por categoria" seg={incSeg} total={totalIn} sign="+ "/>
             <TagTable title="Gastos por categoria" seg={expSeg} total={totalOut} sign="− "/>
