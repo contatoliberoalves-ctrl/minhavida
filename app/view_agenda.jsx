@@ -19,6 +19,7 @@ function CommitmentRow({c, onEdit}){
           <span style={{fontWeight:550,fontSize:13.5,textDecoration:c.done?'line-through':'none'}}>{c.title}</span>
           {!c.done && <PriorityBadge priority={window.priorityOf(c)}/>}
           {overdue && <span className="chip" style={{fontSize:10,padding:'1px 8px',color:'var(--danger)',borderColor:'color-mix(in srgb,var(--danger) 35%,#fff)',fontWeight:600}}><Icon name="alert" size={11}/>Atrasado</span>}
+          {c.ambos && <span className="chip" style={{fontSize:10,padding:'1px 8px',color:'var(--olive-700)',borderColor:'color-mix(in srgb,var(--olive) 35%,#fff)'}}><Icon name="users" size={11}/>Geral</span>}
           {c.section && <span className="chip" style={{fontSize:10,padding:'1px 8px',color:'var(--muted)'}}>{c.section}</span>}
           {c.meet && <span className="chip" style={{fontSize:10.5,padding:'1px 8px',color:'var(--c-vdec)',borderColor:'color-mix(in srgb,var(--c-vdec) 30%,#fff)'}}><Icon name="video" size={12}/>Meet</span>}
           {c.images && c.images.length>0 && <span className="chip" style={{fontSize:10.5,padding:'1px 8px',color:'var(--muted)'}}><Icon name="camera" size={12}/>{c.images.length}</span>}
@@ -166,7 +167,7 @@ function AgendaView(){
   listItems.forEach(c=>{ (groups[c.date]=groups[c.date]||[]).push(c); });
   const dates=Object.keys(groups).sort();
 
-  const projects=[{key:'todos',label:'Todos'},...window.SEED.PROJECTS];
+  const projects=[{key:'todos',label:'Todos'},...window.U.projectsForProfile(state.activeProfile)];
 
   const monthName = U.MONTHS[cursor.m]+' '+cursor.y;
   const moveMonth=(d)=>setCursor(c=>{ let m=c.m+d,y=c.y; if(m<0){m=11;y--;} if(m>11){m=0;y++;} return {m,y}; });

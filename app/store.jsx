@@ -51,6 +51,11 @@ function migrate(s){
     ...c,
     priority: c.priority!==undefined ? c.priority : (c.urgent ? 'urgente' : ''),
     section: c.section||'',
+    // compromissos criados antes dessa opção existir são todos do Líbero e não
+    // aparecem na Início da Ana Cecília — só os marcados "Geral" ou criados por
+    // ela (a partir de agora) aparecem nos dois.
+    owner: c.owner || 'libero',
+    ambos: c.ambos || false,
   }));
   s.tx = (s.tx||[]).map(t=> t.type==='expense' ? ({
     card: '', parcelas: 1, parcelaAtual: 1, recorrente:false, ...t

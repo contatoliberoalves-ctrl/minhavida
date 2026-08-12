@@ -46,7 +46,14 @@ function relDate(s){
   return fmtDate(s,'long');
 }
 
-window.U = { PROJ_BY_KEY, MONTHS, MONTHS_SHORT, DOW, DOW_LONG, parseDate, toISO, fmtDate, brl, brlShort, TODAY, daysFromToday, relDate };
+// Alguns projetos (ex.: Faculdade, Liga) são só da Ana Cecília — quando é ela
+// logada, só esses aparecem; o Líbero (acesso 'all') continua vendo todos.
+function projectsForProfile(profile){
+  const all = (window.SEED && window.SEED.PROJECTS) || [];
+  return profile==='ana' ? all.filter(p=>p.owner==='ana') : all;
+}
+
+window.U = { PROJ_BY_KEY, MONTHS, MONTHS_SHORT, DOW, DOW_LONG, parseDate, toISO, fmtDate, brl, brlShort, TODAY, daysFromToday, relDate, projectsForProfile };
 
 // Se o app/PWA ficar aberto de um dia para o outro, TODAY não pode ficar
 // "travado" no dia em que a página carregou — senão a Início mostra 0

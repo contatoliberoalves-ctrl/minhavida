@@ -32,9 +32,11 @@ const PROJECTS = [
     sections:['Conteúdo Eduarda','Outros clientes'] },
   { key:'pessoal', label:'Pessoal', color:'var(--c-pessoal)', icon:'heart',
     desc:'Compromissos pessoais, saúde e família.' },
-  { key:'faculdade', label:'Faculdade', color:'oklch(0.6 0.1 210)', icon:'bookopen',
+  { key:'faculdade', label:'Faculdade', color:'oklch(0.6 0.1 210)', icon:'bookopen', owner:'ana',
     desc:'Aulas, trabalhos e provas da Ana Cecília.',
     sections:['Aulas','Trabalhos e provas','Estágio'] },
+  { key:'liga', label:'Liga', color:'oklch(0.6 0.13 300)', icon:'flag', owner:'ana',
+    desc:'Atividades da liga acadêmica da Ana Cecília.' },
 ];
 
 // ---- Colaboradores ----

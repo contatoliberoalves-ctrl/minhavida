@@ -5,7 +5,7 @@ function ProjetosView(){
   const [open,setOpen]=React.useState(null); // project key
   const [modal,setModal]=React.useState(null);
 
-  const projects=window.SEED.PROJECTS.filter(p=>p.key!=='pessoal');
+  const projects=window.U.projectsForProfile(state.activeProfile).filter(p=>p.key!=='pessoal');
 
   const countFor=(k)=>{
     const list=state.commitments.filter(c=>c.project===k);

@@ -84,7 +84,9 @@ function CommitmentModal({initial, onClose}){
   const { addCommitment, updateCommitment, removeCommitment, state } = useStore();
   const isEdit = !!(initial && initial.id);
   const [f, setF] = React.useState(()=>({
-    title:'', date: window.U.TODAY, time:'', project:'mentorias', desc:'', priority:'', section:'', meet:false, done:false, links:[], images:[], studentId:'',
+    title:'', date: window.U.TODAY, time:'', project: state.activeProfile==='ana'?'faculdade':'mentorias',
+    desc:'', priority:'', section:'', meet:false, done:false, links:[], images:[], studentId:'',
+    owner: state.activeProfile||'libero', ambos:false,
     ...(initial||{}),
     priority: initial ? (initial.priority || (initial.urgent?'urgente':'')) : '',
     links: (initial&&initial.links)||[], images: (initial&&initial.images)||[],
@@ -96,7 +98,7 @@ function CommitmentModal({initial, onClose}){
     if(isEdit) updateCommitment(initial.id, payload); else addCommitment(payload);
     onClose();
   };
-  const projects = window.SEED.PROJECTS;
+  const projects = window.U.projectsForProfile(state.activeProfile);
   const sections = window.sectionsFor(f.project, state.customSections);
   const PR = window.PRIORITIES;
   return (
@@ -163,8 +165,10 @@ function CommitmentModal({initial, onClose}){
         <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
           <Toggle on={f.meet} onClick={()=>set('meet',!f.meet)} icon="video" label="Criar link do Meet" color="var(--c-vdec)"/>
           <Toggle on={f.done} onClick={()=>set('done',!f.done)} icon="check" label="Concluído" color="var(--ok)"/>
+          <Toggle on={f.ambos} onClick={()=>set('ambos',!f.ambos)} icon="users" label="Geral (aparece pros dois)" color="var(--olive)"/>
         </div>
         {f.meet && <div className="notice"><Icon name="alert"/><div><b>Link do Meet & convite na Agenda:</b> ao conectar sua conta Google, este compromisso gera automaticamente o evento, o link do Meet e o lembrete. <i>Requer conexão real (aba Integrações).</i></div></div>}
+        {!f.ambos && <div style={{fontSize:11.5,color:'var(--faint)'}}>Sem a tag "Geral", este compromisso só aparece na Início {state.activeProfile==='ana'?'da Ana Cecília':'do Líbero'}.</div>}
       </div>
     </Modal>
   );

@@ -4,8 +4,9 @@ function DashboardView({go}){
   const U=window.U;
   const [modal,setModal]=React.useState(null);
 
-  // upcoming commitments
-  const upcoming=state.commitments.filter(c=>!c.done && U.daysFromToday(c.date)>=0)
+  // upcoming commitments — só os "Geral" ou os que são do próprio perfil aparecem aqui
+  const mine=(c)=> c.ambos || (c.owner||'libero')===state.activeProfile;
+  const upcoming=state.commitments.filter(c=>!c.done && U.daysFromToday(c.date)>=0 && mine(c))
     .sort((a,b)=>(a.date+'T'+(a.time||'00')).localeCompare(b.date+'T'+(b.time||'00')));
   const today=upcoming.filter(c=>c.date===U.TODAY);
   const week=upcoming.filter(c=>{ const d=U.daysFromToday(c.date); return d>0&&d<=7; });
@@ -99,7 +100,7 @@ function DashboardView({go}){
                 </div>
                 <span style={{width:3,alignSelf:'stretch',borderRadius:3,background:p.color}}></span>
                 <div style={{flex:1,minWidth:0,cursor:'pointer'}} onClick={()=>setModal(c)}>
-                  <div style={{fontSize:13,fontWeight:550,display:'flex',alignItems:'center',gap:7}}>{c.title}{window.priorityOf(c)&&<PriorityBadge priority={window.priorityOf(c)} sm/>}{c.meet&&<Icon name="video" size={13} style={{color:'var(--c-vdec)'}}/>}</div>
+                  <div style={{fontSize:13,fontWeight:550,display:'flex',alignItems:'center',gap:7}}>{c.title}{window.priorityOf(c)&&<PriorityBadge priority={window.priorityOf(c)} sm/>}{c.meet&&<Icon name="video" size={13} style={{color:'var(--c-vdec)'}}/>}{c.ambos&&<Icon name="users" size={13} style={{color:'var(--olive)'}}/>}</div>
                   <div style={{fontSize:11,color:'var(--faint)'}}>{p.label}</div>
                 </div>
               </div>
@@ -126,8 +127,8 @@ function DashboardView({go}){
           <Card>
             <SectionH title="Projetos" action={<button className="btn btn-ghost btn-sm" onClick={()=>go('projetos')}>Todos<Icon name="chevronR" size={14}/></button>}/>
             <div style={{display:'flex',flexDirection:'column',gap:9}}>
-              {window.SEED.PROJECTS.filter(p=>p.key!=='pessoal').slice(0,6).map(p=>{
-                const cnt=state.commitments.filter(c=>c.project===p.key&&!c.done&&U.daysFromToday(c.date)>=0).length;
+              {U.projectsForProfile(state.activeProfile).filter(p=>p.key!=='pessoal').slice(0,6).map(p=>{
+                const cnt=state.commitments.filter(c=>c.project===p.key&&!c.done&&U.daysFromToday(c.date)>=0&&mine(c)).length;
                 return (
                   <button key={p.key} onClick={()=>go('projetos')} style={{display:'flex',alignItems:'center',gap:10,background:'none',border:'none',padding:'3px 0',cursor:'pointer',textAlign:'left'}}>
                     <span style={{width:28,height:28,borderRadius:8,background:`color-mix(in srgb,${p.color} 13%,#fff)`,color:p.color,display:'grid',placeItems:'center',flex:'0 0 28px'}}><Icon name={p.icon} size={15}/></span>
